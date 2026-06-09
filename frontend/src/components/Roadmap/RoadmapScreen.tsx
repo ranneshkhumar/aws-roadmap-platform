@@ -9,10 +9,11 @@ import { CloudIslandNode } from './CloudIslandNode';
 import { MissionDetailsDrawer } from './MissionDetailsDrawer';
 import { BeginnerSummitLandmark, IntermediateSummitLandmark, CloudArchitectSummitLandmark } from './MilestoneLandmark';
 import { IntermediateCloudsOverlay } from './IntermediateCloudsOverlay';
+import { RoadmapProgressUpdater } from './RoadmapProgressUpdater';
 import { ROADMAP_MODULES } from '@/constants/roadmapData';
 import { useRoadmapStore } from '@/store/roadmapStore';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LevelIslandHeader: React.FC<{
   number: string;
@@ -91,6 +92,7 @@ export const RoadmapScreen: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [boardWidth, setBoardWidth] = useState(1000);
   const [activeTab, setActiveTab] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   // Viewport refs for scrolling and path rendering
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -518,6 +520,30 @@ export const RoadmapScreen: React.FC = () => {
         onClose={() => setIsDrawerOpen(false)}
         status={selectedModuleId ? moduleStates[selectedModuleId] : 'locked'}
       />
+
+      {/* Collapsible Stats Dashboard */}
+      <div className="fixed bottom-6 left-6 z-40 pointer-events-auto">
+        <button
+          onClick={() => setIsStatsOpen(!isStatsOpen)}
+          className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-xs px-4.5 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center gap-2 font-heading"
+        >
+          <Icons.BarChart2 className="w-4 h-4 text-emerald-650" />
+          {isStatsOpen ? 'Hide Stats' : 'View Stats'}
+        </button>
+        
+        <AnimatePresence>
+          {isStatsOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="absolute bottom-16 left-0 w-80 mt-2"
+            >
+              <RoadmapProgressUpdater showReset={true} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

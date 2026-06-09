@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { ModuleData } from '@/constants/roadmapData';
+import { useRoadmapStore } from '@/store/roadmapStore';
 import { cn } from '@/lib/utils';
 
 interface MissionDetailsDrawerProps {
@@ -21,12 +22,12 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
   status
 }) => {
   const router = useRouter();
+  const { quizReviews } = useRoadmapStore();
 
   if (!module) return null;
 
-  const handleStartLearning = () => {
-    // Navigate to the dedicated learning page route
-    router.push(`/roadmap/module/${module.id}`);
+  const handleStartLearning = (mode: 'reading' | 'review' = 'reading') => {
+    router.push(`/roadmap/module/${module.id}?mode=${mode}`);
     onClose();
   };
 
@@ -35,6 +36,8 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
     current: 'Ready To Start',
     locked: 'Locked'
   }[status];
+
+  const hasQuizReview = !!quizReviews[module.id];
 
   return (
     <AnimatePresence>
@@ -51,14 +54,14 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
 
           {/* Drawer Panel */}
           <motion.div
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white/90 border-l border-slate-200/60 text-slate-900 flex flex-col shadow-2xl backdrop-blur-lg"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white border-l border-slate-200 text-slate-900 flex flex-col shadow-2xl"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
           >
             {/* Header Hero Area */}
-            <div className="relative p-6 border-b border-slate-200/50 bg-slate-50/50">
+            <div className="relative p-6 border-b border-slate-200/50 bg-slate-50/50 flex flex-col pr-12">
               <button
                 className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200/40 transition-colors"
                 onClick={onClose}
@@ -69,25 +72,28 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-2 font-outfit">
                 {module.name}
               </h2>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed mt-2">
+                {module.description}
+              </p>
             </div>
 
             {/* Mission Parameters */}
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase text-slate-450 tracking-wider flex items-center gap-1.5 font-outfit">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 font-outfit">
                   <Icons.Sliders className="w-4 h-4 text-emerald-600" />
                   Mission parameters
                 </h4>
 
-                <div className="bg-white border border-slate-200/60 rounded-2xl p-4 divide-y divide-slate-100 shadow-sm font-medium">
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 divide-y divide-slate-100 shadow-sm font-medium">
                   {/* Status row */}
                   <div className="flex justify-between items-center py-3">
                     <span className="text-xs text-slate-500">Completion Status</span>
                     <span className={cn(
                       "text-[10px] font-bold px-2.5 py-0.5 rounded-full border font-outfit",
-                      status === 'completed' && "bg-[#50C999]/10 text-emerald-700 border-[#50C999]/20",
-                      status === 'current' && "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse",
-                      status === 'locked' && "bg-slate-100 text-slate-400 border-slate-200"
+                      status === 'completed' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                      status === 'current' && "bg-blue-50 text-blue-600 border-blue-200 animate-pulse",
+                      status === 'locked' && "bg-slate-50 text-slate-450 border-slate-200"
                     )}>
                       {statusLabel}
                     </span>
@@ -107,7 +113,7 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
                     <span className="text-xs text-slate-500">Learning Pages</span>
                     <span className="text-xs font-bold text-slate-800 flex items-center gap-1 font-outfit">
                       <Icons.BookOpen className="w-3.5 h-3.5 text-cyan-600" />
-                      {module.learningPagesCount} Pages
+                      {module.learningPagesCount || module.learningContent.length} Pages
                     </span>
                   </div>
 
@@ -133,10 +139,29 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
             </div>
 
             {/* Action Bar */}
-            <div className="p-4 border-t border-slate-200/50 bg-slate-50 flex flex-col">
-              {status !== 'locked' ? (
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col gap-2.5">
+              {status === 'completed' ? (
+                <div className="flex flex-col gap-2 w-full">
+                  <button
+                    onClick={() => handleStartLearning('reading')}
+                    className="w-full text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 font-bold py-3 px-6 rounded-2xl text-xs tracking-wider transition-all flex items-center justify-center gap-2 font-outfit shadow-sm"
+                  >
+                    <Icons.BookOpen className="w-4 h-4 text-slate-500" />
+                    View Learning
+                  </button>
+                  {hasQuizReview && (
+                    <button
+                      onClick={() => handleStartLearning('review')}
+                      className="w-full text-white bg-slate-900 hover:bg-slate-800 font-bold py-3 px-6 rounded-2xl text-xs tracking-wider transition-all flex items-center justify-center gap-2 font-outfit shadow-sm"
+                    >
+                      <Icons.FileText className="w-4 h-4 text-amber-400" />
+                      View Quiz Review
+                    </button>
+                  )}
+                </div>
+              ) : status === 'current' ? (
                 <button
-                  onClick={handleStartLearning}
+                  onClick={() => handleStartLearning('reading')}
                   className="w-full text-slate-950 font-black py-3.5 px-6 rounded-2xl text-xs tracking-wider transition-all hover:brightness-105 active:scale-[0.98] shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 font-outfit"
                   style={{
                     background: 'linear-gradient(96deg, rgb(255, 221, 148) 7.63%, rgb(80, 201, 153) 37.94%, rgba(243, 179, 68, 0.974) 65.23%, rgb(143, 255, 248) 92.12%)'
@@ -146,9 +171,9 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
                   Start Learning
                 </button>
               ) : (
-                <div className="w-full bg-slate-250 text-slate-400 font-bold py-3.5 px-6 rounded-2xl text-xs text-center border border-slate-300/40 select-none flex items-center justify-center gap-1.5 font-outfit">
+                <div className="w-full bg-slate-200 text-slate-450 font-bold py-3.5 px-6 rounded-2xl text-xs text-center border border-slate-300/40 select-none flex items-center justify-center gap-1.5 font-outfit">
                   <Icons.Lock className="w-4 h-4" />
-                  Locked (Complete pre-requisites)
+                  Complete previous module to unlock.
                 </div>
               )}
             </div>
