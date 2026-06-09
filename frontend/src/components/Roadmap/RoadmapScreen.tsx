@@ -23,25 +23,22 @@ const LevelIslandHeader: React.FC<{
   levelColor: 'beginner' | 'intermediate' | 'advanced';
 }> = ({ number, title, completed, total, description, levelColor }) => {
   return (
-    <div className={cn(
-      "w-[260px] bg-white/95 border border-slate-200/50 rounded-3xl p-5 shadow-[0_10px_25px_rgba(15,23,42,0.04)] backdrop-blur-md select-none text-slate-800 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
-      levelColor === 'beginner' && "border-l-4 border-l-emerald-500",
-      levelColor === 'intermediate' && "border-l-4 border-l-orange-500",
-      levelColor === 'advanced' && "border-l-4 border-l-amber-500"
-    )}>
-      <div className="flex flex-col">
-        <span className="text-[9px] font-black text-slate-400 tracking-widest font-heading uppercase">
-          LEVEL {number}
-        </span>
-        <h2 className="text-base font-black text-slate-900 leading-tight mt-0.5 tracking-tight font-heading">
-          {title}
-        </h2>
-        <span className="text-[10px] font-extrabold text-slate-500 mt-1">
-          {completed} / {total} Completed
-        </span>
-        <p className="text-[11px] text-slate-600 leading-relaxed mt-2 font-medium">
-          {description}
-        </p>
+    <div className="w-[260px] gradient-container border border-slate-200/50 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 select-none text-slate-800">
+      <div className="gradient-overlay p-5">
+        <div className="relative z-10 flex flex-col">
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-heading">
+            LEVEL {number}
+          </span>
+          <h2 className="text-base font-black text-slate-950 leading-tight mt-0.5 tracking-tight font-heading">
+            {title}
+          </h2>
+          <span className="text-[10px] font-bold text-slate-600 mt-1 font-heading">
+            {completed} / {total} Completed
+          </span>
+          <p className="text-[11px] text-slate-650 leading-snug mt-2 font-medium">
+            {description}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -93,6 +90,7 @@ export const RoadmapScreen: React.FC = () => {
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [boardWidth, setBoardWidth] = useState(1000);
+  const [activeTab, setActiveTab] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
 
   // Viewport refs for scrolling and path rendering
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -174,6 +172,16 @@ export const RoadmapScreen: React.FC = () => {
 
   const selectedModule = ROADMAP_MODULES.find((m) => m.id === selectedModuleId) || null;
   const activeNode = ROADMAP_MODULES.find((m) => moduleStates[m.id] === 'current') || ROADMAP_MODULES[0];
+
+  useEffect(() => {
+    if (activeNode) {
+      setActiveTab(activeNode.level.toLowerCase() as 'beginner' | 'intermediate' | 'advanced');
+    }
+  }, [activeNode]);
+
+  const isActiveBeginner = activeTab === 'beginner';
+  const isActiveIntermediate = activeTab === 'intermediate';
+  const isActiveAdvanced = activeTab === 'advanced';
 
   // Ambient Particles definition for sky depth
   const particles = [
@@ -263,10 +271,21 @@ export const RoadmapScreen: React.FC = () => {
             if (mapContainerRef.current) {
               mapContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
             }
+            setActiveTab('beginner');
           }}
-          className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[11px] font-black tracking-wider shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-heading border border-emerald-400/30 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/25"
+          className={cn(
+            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+            isActiveBeginner 
+              ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105" 
+              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+          )}
+          style={{
+            background: 'linear-gradient(90deg, #50C999 0%, #7EE8A8 100%)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
         >
-          <Icons.Cloud className="w-4 h-4 fill-current" />
+          <Icons.Cloud className="w-4 h-4 fill-current text-emerald-900" />
           BEGINNER LEVEL
         </button>
 
@@ -275,16 +294,24 @@ export const RoadmapScreen: React.FC = () => {
             if (mapContainerRef.current) {
               mapContainerRef.current.scrollTo({ top: 960, behavior: 'smooth' });
             }
+            setActiveTab('intermediate');
           }}
           className={cn(
-            "flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[11px] font-black tracking-wider shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-heading border text-white border-cyan-400/30 bg-gradient-to-r from-cyan-500 to-blue-500 shadow-cyan-500/25",
-            beginnerCompleted < 6 && "opacity-75"
+            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+            isActiveIntermediate 
+              ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105" 
+              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
           )}
+          style={{
+            background: 'linear-gradient(90deg, #6EF7FF 0%, #4EA8FF 100%)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
         >
           {beginnerCompleted < 6 ? (
-            <Icons.Lock className="w-4 h-4" />
+            <Icons.Lock className="w-4 h-4 text-blue-900" />
           ) : (
-            <Icons.Zap className="w-4 h-4 fill-current" />
+            <Icons.Zap className="w-4 h-4 fill-current text-blue-900" />
           )}
           INTERMEDIATE LEVEL
         </button>
@@ -294,16 +321,24 @@ export const RoadmapScreen: React.FC = () => {
             if (mapContainerRef.current) {
               mapContainerRef.current.scrollTo({ top: 1800, behavior: 'smooth' });
             }
+            setActiveTab('advanced');
           }}
           className={cn(
-            "flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[11px] font-black tracking-wider shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-heading border text-white border-amber-300/30 bg-gradient-to-r from-amber-400 to-orange-500 shadow-amber-500/25",
-            totalCompleted < 12 && "opacity-75"
+            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+            isActiveAdvanced 
+              ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105" 
+              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
           )}
+          style={{
+            background: 'linear-gradient(90deg, #FFDD94 0%, #F3B344 100%)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
         >
           {totalCompleted < 12 ? (
-            <Icons.Lock className="w-4 h-4" />
+            <Icons.Lock className="w-4 h-4 text-amber-950" />
           ) : (
-            <Icons.Trophy className="w-4 h-4 fill-current" />
+            <Icons.Trophy className="w-4 h-4 fill-current text-amber-950" />
           )}
           ADVANCED LEVEL
         </button>
@@ -370,10 +405,10 @@ export const RoadmapScreen: React.FC = () => {
             </motion.div>
           ))}
 
-          {/* CANVAS REGION TITLE: 01 BEGINNER */}
+          {/* CANVAS REGION TITLE: LEVEL 1 BEGINNER */}
           <div className="absolute left-[20px] top-[40px] z-20">
             <LevelIslandHeader
-              number="01"
+              number="1"
               title="Beginner"
               completed={beginnerCompleted}
               total={6}
@@ -399,10 +434,10 @@ export const RoadmapScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* CANVAS REGION TITLE: 02 INTERMEDIATE */}
+          {/* CANVAS REGION TITLE: LEVEL 2 INTERMEDIATE */}
           <div className="absolute left-[20px] top-[860px] z-20">
             <LevelIslandHeader
-              number="02"
+              number="2"
               title="Intermediate"
               completed={intermediateCompleted}
               total={6}
@@ -411,10 +446,10 @@ export const RoadmapScreen: React.FC = () => {
             />
           </div>
 
-          {/* CANVAS REGION TITLE: 03 ADVANCED */}
+          {/* CANVAS REGION TITLE: LEVEL 3 ADVANCED */}
           <div className="absolute left-[20px] top-[1700px] z-20">
             <LevelIslandHeader
-              number="03"
+              number="3"
               title="Advanced"
               completed={advancedCompleted}
               total={6}
