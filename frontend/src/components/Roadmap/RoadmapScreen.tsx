@@ -236,225 +236,229 @@ export const RoadmapScreen: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-screen w-screen relative overflow-hidden select-none font-sans text-slate-800 bg-transparent">
       
-      {/* 1. FIXED TOP HEADER PANEL (Matches screenshot) */}
-      <header className="absolute top-4 left-6 right-6 z-50 bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-auto pointer-events-auto">
-        {/* Left Side: Current Mission Info */}
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          {/* Green circle with > icon */}
-          <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-            <Icons.ChevronRight className="w-6 h-6 stroke-[3]" />
-          </div>
-          <div className="flex flex-col text-slate-800">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
-              CONTINUE YOUR JOURNEY
-            </span>
-            <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5 animate-pulse">
-              Current Mission: {activeNode.name}
-            </span>
-            <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
-              <span className="flex items-center gap-1 text-emerald-650">
-                <Icons.Layers className="w-3.5 h-3.5" /> Level: {activeNode.level}
-              </span>
-              <span className="text-slate-200">|</span>
-              <span className="flex items-center gap-1 text-cyan-600">
-                <Icons.CheckCircle2 className="w-3.5 h-3.5" /> Progress: {totalCompleted} / {modules.length} Modules
-              </span>
-              <span className="text-slate-200">|</span>
-              <span className="flex items-center gap-1 text-amber-600">
-                <Icons.Award className="w-3.5 h-3.5" /> Total XP: {xp} XP
-              </span>
-              <span className="text-slate-200">|</span>
-              <span className="flex items-center gap-1 text-orange-650">
-                <Icons.Flame className="w-3.5 h-3.5 text-orange-500 fill-current animate-pulse" /> {streak} Day Streak
-              </span>
-              {role === 'core' && (
-                <>
-                  <span className="text-slate-200">|</span>
-                  <Link 
-                    href="/core"
-                    className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
-                  >
-                    <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard
-                  </Link>
-                </>
-              )}
-              {role === 'crew' && (
-                <>
-                  <span className="text-slate-200">|</span>
-                  <Link 
-                    href="/core/learners"
-                    className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
-                  >
-                    <Icons.Users className="w-3.5 h-3.5" /> Learners Directory
-                  </Link>
-                </>
-              )}
+      {/* Floating Top Panel Container (Stacks header and level selector dynamically) */}
+      <div className="absolute top-4 left-6 right-6 z-50 flex flex-col gap-4 pointer-events-none">
+        
+        {/* 1. FIXED TOP HEADER PANEL (Matches screenshot) */}
+        <header className="bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-full pointer-events-auto">
+          {/* Left Side: Current Mission Info */}
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {/* Green circle with > icon */}
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+              <Icons.ChevronRight className="w-6 h-6 stroke-[3]" />
             </div>
-          </div>
-        </div>
-
-        {/* Right Side: Reward & Resume */}
-        <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-          {/* Streak Badge */}
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-            <Icons.Flame className="w-5 h-5 text-orange-500 fill-current animate-pulse" />
-            <div>
-              <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                STREAK
+            <div className="flex flex-col text-slate-800">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
+                CONTINUE YOUR JOURNEY
               </span>
-              <span className="text-xs font-black text-slate-850 block leading-tight">
-                {streak} Days
+              <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5 animate-pulse">
+                Current Mission: {activeNode.name}
               </span>
+              <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
+                <span className="flex items-center gap-1 text-emerald-650">
+                  <Icons.Layers className="w-3.5 h-3.5" /> Level: {activeNode.level}
+                </span>
+                <span className="text-slate-200">|</span>
+                <span className="flex items-center gap-1 text-cyan-600">
+                  <Icons.CheckCircle2 className="w-3.5 h-3.5" /> Progress: {totalCompleted} / {modules.length} Modules
+                </span>
+                <span className="text-slate-200">|</span>
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Icons.Award className="w-3.5 h-3.5" /> Total XP: {xp} XP
+                </span>
+                <span className="text-slate-200">|</span>
+                <span className="flex items-center gap-1 text-orange-650">
+                  <Icons.Flame className="w-3.5 h-3.5 text-orange-500 fill-current animate-pulse" /> {streak} Day Streak
+                </span>
+                {role === 'core' && (
+                  <>
+                    <span className="text-slate-200">|</span>
+                    <Link 
+                      href="/core"
+                      className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
+                    >
+                      <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard
+                    </Link>
+                  </>
+                )}
+                {role === 'crew' && (
+                  <>
+                    <span className="text-slate-200">|</span>
+                    <Link 
+                      href="/core/learners"
+                      className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
+                    >
+                      <Icons.Users className="w-3.5 h-3.5" /> Learners Directory
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Total XP Badge */}
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-            <Icons.Trophy className="w-5 h-5 text-indigo-600 fill-current" />
-            <div>
-              <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                TOTAL SCORE
-              </span>
-              <span className="text-xs font-black text-slate-850 block leading-tight">
-                {xp} XP
-              </span>
+          {/* Right Side: Reward & Resume */}
+          <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+            {/* Streak Badge */}
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+              <Icons.Flame className="w-5 h-5 text-orange-500 fill-current animate-pulse" />
+              <div>
+                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
+                  STREAK
+                </span>
+                <span className="text-xs font-black text-slate-855 block leading-tight">
+                  {streak} Days
+                </span>
+              </div>
             </div>
+
+            {/* Total XP Badge */}
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+              <Icons.Trophy className="w-5 h-5 text-indigo-600 fill-current" />
+              <div>
+                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
+                  TOTAL SCORE
+                </span>
+                <span className="text-xs font-black text-slate-855 block leading-tight">
+                  {xp} XP
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+              <Icons.Zap className="w-5 h-5 text-amber-500 fill-current animate-pulse" />
+              <div>
+                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
+                  MISSION REWARD
+                </span>
+                <span className="text-xs font-black text-slate-855 block leading-tight">
+                  +{activeNode.points || 50} XP
+                </span>
+              </div>
+            </div>
+
+            {/* Role badge and Logout button */}
+            {role && (
+              <div className={cn(
+                "px-3 py-1.5 border rounded-2xl flex flex-col justify-center select-none text-left",
+                role === 'core' && "bg-indigo-500/10 border-indigo-500/20 text-indigo-600",
+                role === 'crew' && "bg-cyan-500/10 border-cyan-500/20 text-cyan-600",
+                role === 'enthusiast' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
+              )}>
+                <span className="text-[8px] font-black uppercase tracking-wider block text-slate-400 font-heading">
+                  SIM ROLE
+                </span>
+                <span className="text-[10px] font-black block leading-none uppercase">
+                  {role}
+                </span>
+              </div>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-500 rounded-2xl transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
+              title="Logout Simulator session"
+            >
+              <Icons.LogOut className="w-4 h-4" />
+            </button>
+
+            <button 
+              onClick={() => {
+                // Scroll to active node
+                const activeCoord = coordinates[activeNode.id];
+                if (activeCoord && mapContainerRef.current) {
+                  const scrollPos = activeCoord.y - window.innerHeight / 2 + 200;
+                  mapContainerRef.current.scrollTo({ top: Math.max(0, scrollPos), behavior: 'smooth' });
+                }
+                // Open active node drawer
+                setSelectedModuleId(activeNode.id);
+                setIsDrawerOpen(true);
+              }}
+              className="bg-[#00cba9] hover:bg-[#00bda0] text-white font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading"
+            >
+              Resume Learning
+            </button>
           </div>
+        </header>
 
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-            <Icons.Zap className="w-5 h-5 text-amber-500 fill-current animate-pulse" />
-            <div>
-              <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                MISSION REWARD
-              </span>
-              <span className="text-xs font-black text-slate-850 block leading-tight">
-                +{activeNode.points || 50} XP
-              </span>
-            </div>
-          </div>
-
-          {/* Role badge and Logout button */}
-          {role && (
-            <div className={cn(
-              "px-3 py-1.5 border rounded-2xl flex flex-col justify-center select-none text-left",
-              role === 'core' && "bg-indigo-500/10 border-indigo-500/20 text-indigo-600",
-              role === 'crew' && "bg-cyan-500/10 border-cyan-500/20 text-cyan-600",
-              role === 'enthusiast' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
-            )}>
-              <span className="text-[8px] font-black uppercase tracking-wider block text-slate-400 font-heading">
-                SIM ROLE
-              </span>
-              <span className="text-[10px] font-black block leading-none uppercase">
-                {role}
-              </span>
-            </div>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-500 rounded-2xl transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
-            title="Logout Simulator session"
+        {/* 2. LEVEL NAVIGATION BADGES (PILLS) WITH PREMIUM GRADIENTS */}
+        <div className="flex justify-center gap-3 pointer-events-auto">
+          <button 
+            onClick={() => {
+              if (mapContainerRef.current) {
+                mapContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+              setActiveTab('beginner');
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+              isActiveBeginner 
+                ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105" 
+                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+            )}
+            style={{
+              background: 'linear-gradient(90deg, #50C999 0%, #7EE8A8 100%)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
           >
-            <Icons.LogOut className="w-4 h-4" />
+            <Icons.Cloud className="w-4 h-4 fill-current text-emerald-900" />
+            BEGINNER LEVEL
           </button>
 
           <button 
             onClick={() => {
-              // Scroll to active node
-              const activeCoord = coordinates[activeNode.id];
-              if (activeCoord && mapContainerRef.current) {
-                const scrollPos = activeCoord.y - window.innerHeight / 2 + 200;
-                mapContainerRef.current.scrollTo({ top: Math.max(0, scrollPos), behavior: 'smooth' });
+              if (mapContainerRef.current) {
+                mapContainerRef.current.scrollTo({ top: intermediateStartY - 120, behavior: 'smooth' });
               }
-              // Open active node drawer
-              setSelectedModuleId(activeNode.id);
-              setIsDrawerOpen(true);
+              setActiveTab('intermediate');
             }}
-            className="bg-[#00cba9] hover:bg-[#00bda0] text-white font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading"
+            className={cn(
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+              isActiveIntermediate 
+                ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105" 
+                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+            )}
+            style={{
+              background: 'linear-gradient(90deg, #6EF7FF 0%, #4EA8FF 100%)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
           >
-            Resume Learning
+            {isIntermediateLocked ? (
+              <Icons.Lock className="w-4 h-4 text-blue-900" />
+            ) : (
+              <Icons.Zap className="w-4 h-4 fill-current text-blue-900" />
+            )}
+            INTERMEDIATE LEVEL
+          </button>
+
+          <button 
+            onClick={() => {
+              if (mapContainerRef.current) {
+                mapContainerRef.current.scrollTo({ top: advancedStartY - 140, behavior: 'smooth' });
+              }
+              setActiveTab('advanced');
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
+              isActiveAdvanced 
+                ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105" 
+                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+            )}
+            style={{
+              background: 'linear-gradient(90deg, #FFDD94 0%, #F3B344 100%)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            {isAdvancedLocked ? (
+              <Icons.Lock className="w-4 h-4 text-amber-950" />
+            ) : (
+              <Icons.Trophy className="w-4 h-4 fill-current text-amber-950" />
+            )}
+            ADVANCED LEVEL
           </button>
         </div>
-      </header>
-
-      {/* 2. LEVEL NAVIGATION BADGES (PILLS) WITH PREMIUM GRADIENTS */}
-      <div className="absolute top-[106px] left-0 right-0 z-40 flex justify-center gap-3 pointer-events-auto">
-        <button 
-          onClick={() => {
-            if (mapContainerRef.current) {
-              mapContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            setActiveTab('beginner');
-          }}
-          className={cn(
-            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-            isActiveBeginner 
-              ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105" 
-              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
-          )}
-          style={{
-            background: 'linear-gradient(90deg, #50C999 0%, #7EE8A8 100%)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          <Icons.Cloud className="w-4 h-4 fill-current text-emerald-900" />
-          BEGINNER LEVEL
-        </button>
-
-        <button 
-          onClick={() => {
-            if (mapContainerRef.current) {
-              mapContainerRef.current.scrollTo({ top: intermediateStartY - 120, behavior: 'smooth' });
-            }
-            setActiveTab('intermediate');
-          }}
-          className={cn(
-            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-            isActiveIntermediate 
-              ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105" 
-              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
-          )}
-          style={{
-            background: 'linear-gradient(90deg, #6EF7FF 0%, #4EA8FF 100%)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          {isIntermediateLocked ? (
-            <Icons.Lock className="w-4 h-4 text-blue-900" />
-          ) : (
-            <Icons.Zap className="w-4 h-4 fill-current text-blue-900" />
-          )}
-          INTERMEDIATE LEVEL
-        </button>
-
-        <button 
-          onClick={() => {
-            if (mapContainerRef.current) {
-              mapContainerRef.current.scrollTo({ top: advancedStartY - 140, behavior: 'smooth' });
-            }
-            setActiveTab('advanced');
-          }}
-          className={cn(
-            "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-            isActiveAdvanced 
-              ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105" 
-              : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
-          )}
-          style={{
-            background: 'linear-gradient(90deg, #FFDD94 0%, #F3B344 100%)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          {isAdvancedLocked ? (
-            <Icons.Lock className="w-4 h-4 text-amber-950" />
-          ) : (
-            <Icons.Trophy className="w-4 h-4 fill-current text-amber-950" />
-          )}
-          ADVANCED LEVEL
-        </button>
       </div>
 
       {/* 3. SCROLLABLE ADVENTURE CANVAS CONTAINER */}
