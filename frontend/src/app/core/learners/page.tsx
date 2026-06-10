@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRoadmapStore } from '@/store/roadmapStore';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -162,31 +163,42 @@ export default function LearnersDirectoryPage() {
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || null;
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col bg-slate-50 text-slate-800 overflow-hidden font-sans">
       
-      {/* Page Title & Counters */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-heading">
+      {/* ═══════════════ HEADER ROW (Learners Directory Navigation) ═══════════════ */}
+      <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 select-none">
+        
+        {/* Compact Module Navigation Bar */}
+        <div className="flex items-center gap-6 h-full text-xs font-bold">
+          <Link
+            href="/core/roadmaps"
+            className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700"
+          >
+            Roadmap Builder
+          </Link>
+          <Link
+            href="/core/learners"
+            className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-indigo-650 font-extrabold border-indigo-600"
+          >
             Learners Directory
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Monitor cloud explorer scores, achievements, and individual module quiz attempts.
-          </p>
+          </Link>
         </div>
 
         {/* Search Input Widget */}
-        <div className="relative w-full md:w-72">
+        <div className="relative w-72 flex-shrink-0">
           <input
             type="text"
             placeholder="Search student name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors shadow-sm"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-850 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
           />
-          <Icons.Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
+          <Icons.Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-450" />
         </div>
-      </div>
+      </header>
+
+      {/* Scrollable Content Workspace */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* Curriculum Level & Modules Completion Filter Panel */}
       <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
@@ -537,6 +549,7 @@ export default function LearnersDirectoryPage() {
           </div>
         )}
       </AnimatePresence>
+      </div>
 
     </div>
   );

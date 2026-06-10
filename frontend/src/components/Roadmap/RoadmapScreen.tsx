@@ -81,6 +81,16 @@ interface VisualNode {
 export const RoadmapScreen: React.FC = () => {
   const router = useRouter();
   const { modules, moduleStates, xp, streak } = useRoadmapStore();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(localStorage.getItem('role'));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.push('/login');
+  };
 
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -257,13 +267,28 @@ export const RoadmapScreen: React.FC = () => {
               <span className="flex items-center gap-1 text-orange-650">
                 <Icons.Flame className="w-3.5 h-3.5 text-orange-500 fill-current animate-pulse" /> {streak} Day Streak
               </span>
-              <span className="text-slate-200">|</span>
-              <Link 
-                href="/core"
-                className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
-              >
-                <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard
-              </Link>
+              {role === 'core' && (
+                <>
+                  <span className="text-slate-200">|</span>
+                  <Link 
+                    href="/core"
+                    className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
+                  >
+                    <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard
+                  </Link>
+                </>
+              )}
+              {role === 'crew' && (
+                <>
+                  <span className="text-slate-200">|</span>
+                  <Link 
+                    href="/core/learners"
+                    className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
+                  >
+                    <Icons.Users className="w-3.5 h-3.5" /> Learners Directory
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -307,6 +332,31 @@ export const RoadmapScreen: React.FC = () => {
               </span>
             </div>
           </div>
+
+          {/* Role badge and Logout button */}
+          {role && (
+            <div className={cn(
+              "px-3 py-1.5 border rounded-2xl flex flex-col justify-center select-none text-left",
+              role === 'core' && "bg-indigo-500/10 border-indigo-500/20 text-indigo-600",
+              role === 'crew' && "bg-cyan-500/10 border-cyan-500/20 text-cyan-600",
+              role === 'enthusiast' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
+            )}>
+              <span className="text-[8px] font-black uppercase tracking-wider block text-slate-400 font-heading">
+                SIM ROLE
+              </span>
+              <span className="text-[10px] font-black block leading-none uppercase">
+                {role}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleLogout}
+            className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-500 rounded-2xl transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
+            title="Logout Simulator session"
+          >
+            <Icons.LogOut className="w-4 h-4" />
+          </button>
 
           <button 
             onClick={() => {

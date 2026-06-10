@@ -204,25 +204,25 @@ export default function RoadmapsBuilderPage() {
     <div className="h-full flex flex-col bg-slate-50 text-slate-800 overflow-hidden font-sans">
       
       {/* ═══════════════ HEADER ROW (Visual Roadmap CMS) ═══════════════ */}
-      <header className="px-8 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0 select-none">
-        <div className="flex items-center gap-3">
+      <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 select-none">
+        
+        {/* Compact Module Navigation Bar */}
+        <div className="flex items-center gap-6 h-full text-xs font-bold">
+          <Link
+            href="/core/roadmaps"
+            className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-indigo-650 font-extrabold border-indigo-600"
+          >
+            Roadmap Builder
+          </Link>
           <Link
             href="/core/learners"
-            className="flex items-center gap-2 px-4.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-700 transition-all shadow-xs font-heading"
+            className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700"
           >
-            <Icons.Users className="w-4 h-4 text-indigo-600" />
-            <span>Learners Directory</span>
+            Learners Directory
           </Link>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-[10px] font-black text-slate-400 hover:text-rose-600 transition-colors uppercase tracking-wider font-heading"
-          >
-            <Icons.LogOut className="w-3 h-3 rotate-180" />
-            Exit
-          </Link>
+        <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-[#00cba9] hover:bg-[#00bda0] text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-1.5 font-heading"
