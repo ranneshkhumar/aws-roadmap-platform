@@ -205,13 +205,21 @@ export default function RoadmapsBuilderPage() {
       
       {/* ═══════════════ HEADER ROW (Visual Roadmap CMS) ═══════════════ */}
       <header className="px-8 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0 select-none">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight font-heading">
-            Visual Roadmap CMS
-          </h2>
-          <p className="text-xs text-slate-450 mt-0.5 font-medium">
-            Configure, reorder, and structure the learning curriculum using a live preview canvas.
-          </p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/core/learners"
+            className="flex items-center gap-2 px-4.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-700 transition-all shadow-xs font-heading"
+          >
+            <Icons.Users className="w-4 h-4 text-indigo-600" />
+            <span>Learners Directory</span>
+          </Link>
+          <Link
+            href="/core/analytics"
+            className="flex items-center gap-2 px-4.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-700 transition-all shadow-xs font-heading"
+          >
+            <Icons.BarChart3 className="w-4 h-4 text-indigo-600" />
+            <span>Analytics Insights</span>
+          </Link>
         </div>
 
         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
