@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import type { QuizReviewData } from '@/components/Roadmap/QuizReview';
 
 // ============================================================================
 // 1. TYPE DEFINITIONS
@@ -105,6 +106,7 @@ export interface QuizAttemptDto {
 }
 
 export interface QuizAttemptResult {
+  attemptId: string;
   correctAnswers: number;
   totalQuestions: number;
   percentage: number;
@@ -223,6 +225,15 @@ export const slidesService = {
     const res = await apiClient.put<LearningSlide[]>(`/modules/${moduleId}/slides`, { slides });
     return res.data;
   },
+
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post<{ url: string }>('/uploads/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
 };
 
 export const questionsService = {
@@ -250,6 +261,11 @@ export const progressService = {
 
   submitQuizAttempt: async (moduleId: string, dto: QuizAttemptDto): Promise<QuizAttemptResult> => {
     const res = await apiClient.post<QuizAttemptResult>(`/modules/${moduleId}/quiz/attempt`, dto);
+    return res.data;
+  },
+
+  getQuizReview: async (moduleId: string): Promise<QuizReviewData> => {
+    const res = await apiClient.get<QuizReviewData>(`/modules/${moduleId}/quiz/review`);
     return res.data;
   },
 };

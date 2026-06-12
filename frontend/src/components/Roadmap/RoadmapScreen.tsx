@@ -131,7 +131,7 @@ export const RoadmapScreen: React.FC = () => {
           modulesService.getModules(),
           progressService.getMyProgress(),
         ]);
-        
+
         if (!active) return;
 
         // Map database modules to UI modules format
@@ -143,8 +143,8 @@ export const RoadmapScreen: React.FC = () => {
           description: m.description,
           iconName: getIconForSlug(m.slug),
           estimatedTime: `${m.estimatedMinutes} Minutes`,
-          learningPagesCount: 4, 
-          quizQuestionsCount: 3, 
+          learningPagesCount: 4,
+          quizQuestionsCount: 3,
           tasks: [],
           quiz: {
             question: '',
@@ -223,16 +223,16 @@ export const RoadmapScreen: React.FC = () => {
     const handleResize = () => {
       setBoardWidth(boardRef.current?.offsetWidth || 1000);
     };
-    
+
     handleResize();
-    
+
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
     if (boardRef.current) {
       resizeObserver.observe(boardRef.current);
     }
-    
+
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -306,6 +306,19 @@ export const RoadmapScreen: React.FC = () => {
   const selectedModule = modules.find((m) => m.id === selectedModuleId) || null;
   const activeNode = modules.find((m) => moduleStates[m.id] === 'current') || modules[0] || { id: '', name: 'Start', level: 'Beginner', points: 50 };
 
+  // Derive display level: active module tier first, fallback to highest completed tier
+  const levelOrder: Record<string, number> = { Beginner: 0, Intermediate: 1, Advanced: 2 };
+  const hasCurrentModule = modules.some((m) => moduleStates[m.id] === 'current');
+  const displayLevel = (() => {
+    if (hasCurrentModule) return activeNode.level;
+    const completedModules = modules.filter((m) => moduleStates[m.id] === 'completed');
+    if (completedModules.length === 0) return activeNode.level;
+    return completedModules.reduce(
+      (highest, m) => (levelOrder[m.level] > levelOrder[highest] ? m.level : highest),
+      'Beginner' as string,
+    );
+  })();
+
   useEffect(() => {
     if (activeNode) {
       setActiveTab(activeNode.level.toLowerCase() as 'beginner' | 'intermediate' | 'advanced');
@@ -340,10 +353,10 @@ export const RoadmapScreen: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-screen w-screen relative overflow-hidden select-none font-sans text-slate-800 bg-transparent">
-      
+
       {/* Floating Top Panel Container (Stacks header and level selector dynamically) */}
       <div className="absolute top-4 left-6 right-6 z-50 flex flex-col gap-4 pointer-events-none">
-        
+
         {/* 1. FIXED TOP HEADER PANEL (Matches screenshot) */}
         <header className="bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-full pointer-events-auto">
           {/* Left Side: Current Mission Info */}
@@ -360,25 +373,15 @@ export const RoadmapScreen: React.FC = () => {
                 Current Mission: {activeNode.name}
               </span>
               <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
-                <span className="flex items-center gap-1 text-emerald-650">
-                  <Icons.Layers className="w-3.5 h-3.5" /> Level: {activeNode.level}
-                </span>
-                <span className="text-slate-200">|</span>
                 <span className="flex items-center gap-1 text-cyan-600">
                   <Icons.CheckCircle2 className="w-3.5 h-3.5" /> Progress: {totalCompleted} / {modules.length} Modules
                 </span>
-                <span className="text-slate-200">|</span>
-                <span className="flex items-center gap-1 text-amber-600">
-                  <Icons.Award className="w-3.5 h-3.5" /> Total XP: {xp} XP
-                </span>
-                <span className="text-slate-200">|</span>
-                <span className="flex items-center gap-1 text-orange-650">
-                  <Icons.Flame className="w-3.5 h-3.5 text-orange-500 fill-current animate-pulse" /> {streak} Day Streak
-                </span>
+
+
                 {role === 'core' && (
                   <>
                     <span className="text-slate-200">|</span>
-                    <Link 
+                    <Link
                       href="/core/roadmaps"
                       className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
                     >
@@ -389,7 +392,7 @@ export const RoadmapScreen: React.FC = () => {
                 {role === 'crew' && (
                   <>
                     <span className="text-slate-200">|</span>
-                    <Link 
+                    <Link
                       href="/core/learners"
                       className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
                     >
@@ -441,22 +444,22 @@ export const RoadmapScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Role badge and Logout button */}
-            {role && (
-              <div className={cn(
-                "px-3 py-1.5 border rounded-2xl flex flex-col justify-center select-none text-left",
-                role === 'core' && "bg-indigo-500/10 border-indigo-500/20 text-indigo-600",
-                role === 'crew' && "bg-cyan-500/10 border-cyan-500/20 text-cyan-600",
-                role === 'enthusiast' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
-              )}>
-                <span className="text-[8px] font-black uppercase tracking-wider block text-slate-400 font-heading">
-                  SIM ROLE
+            {/* Level badge */}
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+              <Icons.Layers className="w-5 h-5 text-emerald-600" />
+              <div>
+                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
+                  LEVEL
                 </span>
-                <span className="text-[10px] font-black block leading-none uppercase">
-                  {role}
+                <span className="text-xs font-black text-slate-855 block leading-tight">
+                  {displayLevel}
                 </span>
               </div>
-            )}
+            </div>
+
+           
+                
+             
 
             <button
               onClick={handleLogout}
@@ -466,7 +469,7 @@ export const RoadmapScreen: React.FC = () => {
               <Icons.LogOut className="w-4 h-4" />
             </button>
 
-            <button 
+            <button
               onClick={() => {
                 // Scroll to active node
                 const activeCoord = coordinates[activeNode.id];
@@ -487,7 +490,7 @@ export const RoadmapScreen: React.FC = () => {
 
         {/* 2. LEVEL NAVIGATION BADGES (PILLS) WITH PREMIUM GRADIENTS */}
         <div className="flex justify-center gap-3 pointer-events-auto">
-          <button 
+          <button
             onClick={() => {
               if (mapContainerRef.current) {
                 mapContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -496,8 +499,8 @@ export const RoadmapScreen: React.FC = () => {
             }}
             className={cn(
               "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveBeginner 
-                ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105" 
+              isActiveBeginner
+                ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105"
                 : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
             )}
             style={{
@@ -510,7 +513,7 @@ export const RoadmapScreen: React.FC = () => {
             BEGINNER LEVEL
           </button>
 
-          <button 
+          <button
             onClick={() => {
               if (mapContainerRef.current) {
                 mapContainerRef.current.scrollTo({ top: intermediateStartY - 120, behavior: 'smooth' });
@@ -519,8 +522,8 @@ export const RoadmapScreen: React.FC = () => {
             }}
             className={cn(
               "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveIntermediate 
-                ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105" 
+              isActiveIntermediate
+                ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105"
                 : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
             )}
             style={{
@@ -537,7 +540,7 @@ export const RoadmapScreen: React.FC = () => {
             INTERMEDIATE LEVEL
           </button>
 
-          <button 
+          <button
             onClick={() => {
               if (mapContainerRef.current) {
                 mapContainerRef.current.scrollTo({ top: advancedStartY - 140, behavior: 'smooth' });
@@ -546,8 +549,8 @@ export const RoadmapScreen: React.FC = () => {
             }}
             className={cn(
               "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveAdvanced 
-                ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105" 
+              isActiveAdvanced
+                ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105"
                 : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
             )}
             style={{
@@ -567,7 +570,7 @@ export const RoadmapScreen: React.FC = () => {
       </div>
 
       {/* 3. SCROLLABLE ADVENTURE CANVAS CONTAINER */}
-      <div 
+      <div
         ref={mapContainerRef}
         className="w-full flex-1 overflow-y-auto overflow-x-hidden scrollbar-none relative z-10"
         style={{ background: backgroundGradient }}
@@ -587,7 +590,7 @@ export const RoadmapScreen: React.FC = () => {
         )}
 
         {/* Board container shifted down to not collide with header at scroll top */}
-        <div 
+        <div
           ref={boardRef}
           className="relative w-full z-10 mt-[140px]"
           style={{ height: `${totalHeight}px` }}
@@ -655,7 +658,7 @@ export const RoadmapScreen: React.FC = () => {
 
           {/* START HERE BADGE WITH FLAG */}
           {coordinates['fundamentals'] && (
-            <div 
+            <div
               className="absolute z-30 flex flex-col items-center"
               style={{
                 left: `calc(${coordinates['fundamentals'].x}% - 60px)`,
@@ -673,7 +676,7 @@ export const RoadmapScreen: React.FC = () => {
           )}
 
           {/* CANVAS REGION TITLE: LEVEL 2 INTERMEDIATE */}
-          <div 
+          <div
             className="absolute left-[20px] z-20 transition-all duration-1000"
             style={{ top: `${intermediateCardTop}px` }}
           >
@@ -689,7 +692,7 @@ export const RoadmapScreen: React.FC = () => {
           </div>
 
           {/* CANVAS REGION TITLE: LEVEL 3 ADVANCED */}
-          <div 
+          <div
             className="absolute left-[20px] z-20 transition-all duration-1000"
             style={{ top: `${advancedCardTop}px` }}
           >
@@ -705,45 +708,45 @@ export const RoadmapScreen: React.FC = () => {
           </div>
 
           {/* RENDER SUMMITS & CASTLE LANDMARKS */}
-          
+
           {/* Beginner Summit */}
           {coordinates['summit_beginner'] && (
-            <BeginnerSummitLandmark 
-              x={coordinates['summit_beginner'].x} 
-              y={coordinates['summit_beginner'].y} 
-              locked={isIntermediateLocked} 
+            <BeginnerSummitLandmark
+              x={coordinates['summit_beginner'].x}
+              y={coordinates['summit_beginner'].y}
+              locked={isIntermediateLocked}
             />
           )}
 
           {/* Intermediate Summit */}
           {coordinates['summit_intermediate'] && (
-            <IntermediateSummitLandmark 
-              x={coordinates['summit_intermediate'].x} 
-              y={coordinates['summit_intermediate'].y} 
-              locked={isAdvancedLocked} 
+            <IntermediateSummitLandmark
+              x={coordinates['summit_intermediate'].x}
+              y={coordinates['summit_intermediate'].y}
+              locked={isAdvancedLocked}
             />
           )}
 
           {/* Intermediate region cloud cover overlay */}
-          <IntermediateCloudsOverlay 
-            locked={isIntermediateLocked} 
-            top={intermediateStartY} 
-            height={intermediateHeight} 
+          <IntermediateCloudsOverlay
+            locked={isIntermediateLocked}
+            top={intermediateStartY}
+            height={intermediateHeight}
           />
 
           {/* Advanced region cloud cover overlay */}
-          <AdvancedCloudsOverlay 
-            locked={isAdvancedLocked} 
-            top={advancedStartY} 
-            height={advancedHeight} 
+          <AdvancedCloudsOverlay
+            locked={isAdvancedLocked}
+            top={advancedStartY}
+            height={advancedHeight}
           />
 
           {/* Advanced Castle Summit */}
           {coordinates['summit_advanced'] && (
-            <CloudArchitectSummitLandmark 
-              x={coordinates['summit_advanced'].x} 
-              y={coordinates['summit_advanced'].y} 
-              locked={totalCompleted < modules.length} 
+            <CloudArchitectSummitLandmark
+              x={coordinates['summit_advanced'].x}
+              y={coordinates['summit_advanced'].y}
+              locked={totalCompleted < modules.length}
             />
           )}
 
@@ -791,7 +794,7 @@ export const RoadmapScreen: React.FC = () => {
           <Icons.BarChart2 className="w-4 h-4 text-emerald-650" />
           {isStatsOpen ? 'Hide Stats' : 'View Stats'}
         </button>
-        
+
         <AnimatePresence>
           {isStatsOpen && (
             <motion.div
@@ -800,8 +803,8 @@ export const RoadmapScreen: React.FC = () => {
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               className="absolute bottom-16 left-0 w-80 mt-2"
             >
-              <RoadmapProgressUpdater 
-                showReset={false} 
+              <RoadmapProgressUpdater
+                showReset={false}
                 xp={xp}
                 streak={streak}
                 modules={modules}

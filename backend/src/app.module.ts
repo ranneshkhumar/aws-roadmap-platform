@@ -9,6 +9,7 @@ import { CurriculumModule } from './curriculum/curriculum.module';
 import { SlidesModule } from './slides/slides.module';
 import { QuestionsModule } from './questions/questions.module';
 import { ProgressModule } from './progress/progress.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ProgressModule } from './progress/progress.module';
     SlidesModule,
     QuestionsModule,
     ProgressModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

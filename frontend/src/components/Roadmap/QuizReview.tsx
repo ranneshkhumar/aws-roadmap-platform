@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils';
 export interface QuizQuestionReview {
   question: string;
   options: string[];
-  userAnswerIndex: number;
-  correctAnswerIndex: number;
+  selectedAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
   explanation: string;
 }
 
@@ -19,7 +20,7 @@ export interface QuizReviewData {
   totalQuestions: number;
   xpEarned: number;
   percentage: number;
-  answers?: QuizQuestionReview[];
+  answers: QuizQuestionReview[];
   completedAt: string;
 }
 
@@ -71,64 +72,60 @@ export const QuizReview: React.FC<QuizReviewProps> = ({ review, onReturn }) => {
         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
           Detailed Review
         </h4>
-        
-        {review.answers && review.answers.length > 0 ? (
-          review.answers.map((answer, index) => {
-            const isCorrect = answer.userAnswerIndex === answer.correctAnswerIndex;
-            return (
-              <div key={index} className={cn(
-                "border rounded-2xl p-4 space-y-2 text-xs",
-                isCorrect ? "bg-emerald-50/20 border-emerald-200/50" : "bg-rose-50/20 border-rose-200/50"
-              )}>
-                <p className="font-bold text-slate-900 leading-relaxed">
-                  {index + 1}. {answer.question}
-                </p>
-                
-                <div className="space-y-1 mt-2">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <span className="text-slate-450">Your Answer:</span>
-                    <span className={isCorrect ? "text-emerald-705" : "text-rose-705"}>
-                      {answer.options[answer.userAnswerIndex]}
-                    </span>
-                    {!isCorrect && (
-                      <Icons.XCircle className="w-3.5 h-3.5 text-rose-500" />
-                    )}
-                    {isCorrect && (
-                      <Icons.CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-current" />
-                    )}
-                  </div>
-                  
+
+        {review.answers.map((answer, index) => {
+          const letterToIndex = (letter: string): number => {
+            const map: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+            return map[letter] ?? 0;
+          };
+          const isCorrect = answer.isCorrect;
+          const userIdx = letterToIndex(answer.selectedAnswer);
+          const correctIdx = letterToIndex(answer.correctAnswer);
+          return (
+            <div key={index} className={cn(
+              "border rounded-2xl p-4 space-y-2 text-xs",
+              isCorrect ? "bg-emerald-50/20 border-emerald-200/50" : "bg-rose-50/20 border-rose-200/50"
+            )}>
+              <p className="font-bold text-slate-900 leading-relaxed">
+                {index + 1}. {answer.question}
+              </p>
+
+              <div className="space-y-1 mt-2">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <span className="text-slate-450">Your Answer:</span>
+                  <span className={isCorrect ? "text-emerald-705" : "text-rose-705"}>
+                    {answer.options[userIdx]}
+                  </span>
                   {!isCorrect && (
-                    <div className="flex items-center gap-1.5 font-semibold text-slate-650">
-                      <span className="text-slate-450">Correct Answer:</span>
-                      <span className="text-emerald-705">
-                        {answer.options[answer.correctAnswerIndex]}
-                      </span>
-                    </div>
+                    <Icons.XCircle className="w-3.5 h-3.5 text-rose-500" />
+                  )}
+                  {isCorrect && (
+                    <Icons.CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-current" />
                   )}
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-slate-200/50 text-[11px] text-slate-500 leading-relaxed font-medium">
-                  <span className="font-extrabold text-slate-700 block mb-0.5">Rationale:</span>
-                  {answer.explanation}
-                </div>
+                {!isCorrect && (
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-650">
+                    <span className="text-slate-450">Correct Answer:</span>
+                    <span className="text-emerald-705">
+                      {answer.options[correctIdx]}
+                    </span>
+                  </div>
+                )}
               </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-6 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 px-4">
-            <Icons.Lock className="w-5 h-5 text-slate-400 mx-auto mb-1.5" />
-            <p className="font-extrabold text-[11px] text-slate-600">Secure Assessment Mode</p>
-            <p className="text-[10px] text-slate-450 mt-1 leading-relaxed max-w-[280px] mx-auto">
-              Detailed answers and explanations are hidden on this route to preserve curriculum assessment integrity.
-            </p>
-          </div>
-        )}
+
+              <div className="mt-3 pt-2 border-t border-slate-200/50 text-[11px] text-slate-500 leading-relaxed font-medium">
+                <span className="font-extrabold text-slate-700 block mb-0.5">Explanation:</span>
+                {answer.explanation}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Return Journey Button */}
       <div className="pt-2 border-t border-slate-100 flex justify-center">
-        <button 
+        <button
           onClick={onReturn}
           className="w-full max-w-xs bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl text-xs tracking-wider transition-all active:scale-[0.98] shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 font-heading"
         >

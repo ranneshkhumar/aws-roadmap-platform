@@ -29,4 +29,12 @@ export class ProgressController {
   ) {
     return this.progressService.submitQuizAttempt(req.user.id, moduleId, dto);
   }
+
+  @Get('modules/:moduleId/quiz/review')
+  async getQuizReview(
+    @Param('moduleId') moduleId: string,
+    @Request() req,
+  ) {
+    return this.progressService.getQuizReview(req.user.id, moduleId);
+  }
 }

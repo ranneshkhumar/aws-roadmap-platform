@@ -350,7 +350,7 @@ export default function QuizEditorPage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-cyan-605 tracking-widest bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded-md font-heading">
+              <span className="text-[9px] font-black uppercase text-cyan-600 tracking-widest bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded-md font-heading">
                 {module.level}
               </span>
               <h2 className="text-base font-black text-slate-800 font-heading tracking-tight leading-tight">
@@ -361,6 +361,24 @@ export default function QuizEditorPage() {
               Create, manage, and validate assessment questions for this learning module.
             </p>
           </div>
+        </div>
+
+        {/* Editor tab navigation */}
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+          <Link
+            href={`/core/module/${module.id}/content`}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all text-slate-500 hover:text-slate-700 hover:bg-white/50"
+          >
+            <Icons.FileText className="w-3.5 h-3.5 inline mr-1.5" />
+            Slides
+          </Link>
+          <Link
+            href={`/core/module/${module.id}/quiz`}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-white text-slate-900 shadow-sm"
+          >
+            <Icons.HelpCircle className="w-3.5 h-3.5 inline mr-1.5" />
+            Quiz
+          </Link>
         </div>
       </div>
 

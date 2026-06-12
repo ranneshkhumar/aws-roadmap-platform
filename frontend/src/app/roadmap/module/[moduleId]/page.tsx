@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import { modulesService, slidesService, questionsService, progressService, mapLayoutTypeToFrontend, mapIndexToLetter } from '@/services/api';
+import { modulesService, slidesService, questionsService, progressService, mapLayoutTypeToFrontend, mapIndexToLetter, mapBackendQuestionToFrontend } from '@/services/api';
 import { ApiError } from '@/services/apiClient';
 import { authService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
@@ -181,21 +181,12 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         }));
 
         setSlides(mappedSlides);
-        setQuizQuestions(fetchedQuestions);
+        setQuizQuestions(fetchedQuestions.map(mapBackendQuestionToFrontend));
 
         // Initial step resolution
         if (initialMode === 'review' && isCompleted) {
-          // Construct empty answers scoreboard for historical completed review (secure mode)
-          const dummyReview: QuizReviewData = {
-            moduleId: dbId,
-            score: fetchedQuestions.length, // default display best
-            totalQuestions: fetchedQuestions.length,
-            percentage: 100,
-            xpEarned: 0,
-            answers: [],
-            completedAt: new Date().toISOString(),
-          };
-          setQuizReview(dummyReview);
+          const reviewData = await progressService.getQuizReview(dbId);
+          setQuizReview(reviewData);
           setStep('review');
         } else {
           setStep('reading');
@@ -400,25 +391,14 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         selectedAnswer: mapIndexToLetter(userAnswers[idx] ?? 0),
       }));
 
-      const res = await progressService.submitQuizAttempt(module.dbId, {
+      await progressService.submitQuizAttempt(module.dbId, {
         answers: answersPayload,
       });
 
-      // Show confetti
       setShowConfetti(true);
 
-      // Construct QuizReviewData locally (stripped correctAnswers answers array for student security)
-      const reviewResult: QuizReviewData = {
-        moduleId: module.dbId,
-        score: res.correctAnswers,
-        totalQuestions: res.totalQuestions,
-        percentage: res.percentage,
-        xpEarned: res.xpEarned,
-        answers: [],
-        completedAt: new Date().toISOString(),
-      };
-
-      setQuizReview(reviewResult);
+      const reviewData = await progressService.getQuizReview(module.dbId);
+      setQuizReview(reviewData);
       setStep('review');
     } catch (err: any) {
       console.error("Failed to submit quiz attempt:", err);

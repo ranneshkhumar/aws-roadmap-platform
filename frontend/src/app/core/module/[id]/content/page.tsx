@@ -335,17 +335,19 @@ export default function ContentEditorPage() {
     });
   };
 
-  // Base64 Image upload helper
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image upload helper — uploads to Cloudinary via backend
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      updateActiveSlide({ imageUrl: base64 });
-    };
-    reader.readAsDataURL(file);
+    try {
+      setSaveStatus('saving');
+      const { url } = await slidesService.uploadImage(file);
+      updateActiveSlide({ imageUrl: url });
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      setSaveStatus('failed');
+    }
   };
 
   const handleRemoveImage = () => {
@@ -457,6 +459,24 @@ export default function ContentEditorPage() {
               Curate the slide deck that students view when launching this roadmap island.
             </p>
           </div>
+        </div>
+
+        {/* Editor tab navigation */}
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+          <Link
+            href={`/core/module/${module.id}/content`}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-white text-slate-900 shadow-sm"
+          >
+            <Icons.FileText className="w-3.5 h-3.5 inline mr-1.5" />
+            Slides
+          </Link>
+          <Link
+            href={`/core/module/${module.id}/quiz`}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all text-slate-500 hover:text-slate-700 hover:bg-white/50"
+          >
+            <Icons.HelpCircle className="w-3.5 h-3.5 inline mr-1.5" />
+            Quiz
+          </Link>
         </div>
       </div>
 
@@ -666,7 +686,7 @@ export default function ContentEditorPage() {
                   <label className="border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-50/40 hover:bg-indigo-50/20 transition-all text-center">
                     <Icons.UploadCloud className="w-8 h-8 text-slate-400" />
                     <span className="text-[11px] font-black text-slate-600">Upload Concept Image</span>
-                    <span className="text-[9px] text-slate-450">JPG, PNG, WebP (Converted to base64)</span>
+                    <span className="text-[9px] text-slate-450">JPG, PNG, WebP (Max 5MB)</span>
                     <input
                       type="file"
                       accept="image/*"

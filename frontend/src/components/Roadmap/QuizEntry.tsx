@@ -57,7 +57,7 @@ export const QuizEntry: React.FC<QuizEntryProps> = ({
           </p>
 
           <div className="space-y-2.5">
-            {question.options.map((option, idx) => {
+            {(question.options ?? []).map((option, idx) => {
               const isSelected = selectedOption === idx;
               return (
                 <button

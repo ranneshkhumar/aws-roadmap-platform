@@ -27,15 +27,49 @@ export class ProgressService {
       .filter((p) => p.status === 'UNLOCKED')
       .map((p) => p.moduleId);
 
-    // If the first module in the database has no progress record, implicitly mark it as unlocked
-    const firstModule = await this.prisma.module.findFirst({
+    // Reconcile progression against current curriculum order.
+    // Find the first module (by orderIndex) that the learner has not completed,
+    // and ensure exactly that module is UNLOCKED. All later missing modules stay LOCKED.
+    const allModules = await this.prisma.module.findMany({
       orderBy: { orderIndex: 'asc' },
+      select: { id: true },
     });
 
-    if (firstModule) {
-      const hasProgress = progressList.some((p) => p.moduleId === firstModule.id);
-      if (!hasProgress) {
-        unlockedModules.push(firstModule.id);
+    if (allModules.length > 0) {
+      const progressMap = new Map(progressList.map((p) => [p.moduleId, p.status]));
+      let reconciledUnlock: string | null = null;
+
+      for (const mod of allModules) {
+        const status = progressMap.get(mod.id);
+        if (status === 'COMPLETED') continue;
+
+        // First missing module — should be UNLOCKED
+        if (!reconciledUnlock) {
+          reconciledUnlock = mod.id;
+
+          if (status !== 'UNLOCKED') {
+            await this.prisma.userModuleProgress.upsert({
+              where: { userId_moduleId: { userId, moduleId: mod.id } },
+              create: { userId, moduleId: mod.id, status: 'UNLOCKED' },
+              update: { status: 'UNLOCKED' },
+            });
+
+            if (!unlockedModules.includes(mod.id)) {
+              unlockedModules.push(mod.id);
+            }
+          }
+        } else {
+          // All later missing modules — ensure LOCKED
+          if (status === 'UNLOCKED') {
+            await this.prisma.userModuleProgress.update({
+              where: { userId_moduleId: { userId, moduleId: mod.id } },
+              data: { status: 'LOCKED' },
+            });
+
+            const idx = unlockedModules.indexOf(mod.id);
+            if (idx !== -1) unlockedModules.splice(idx, 1);
+          }
+        }
       }
     }
 
@@ -241,11 +275,46 @@ export class ProgressService {
       }
 
       return {
+        attemptId: attempt.id,
         correctAnswers: correctAnswersCount,
         totalQuestions: totalQuestionsCount,
         percentage: Math.round((correctAnswersCount / totalQuestionsCount) * 100),
         xpEarned,
       };
     });
+  }
+
+  async getQuizReview(userId: string, moduleId: string) {
+    const attempt = await this.prisma.quizAttempt.findFirst({
+      where: { userId, moduleId },
+      orderBy: { attemptedAt: 'desc' },
+      include: {
+        answers: {
+          include: { question: true },
+          orderBy: { question: { orderIndex: 'asc' } },
+        },
+      },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException('No quiz attempt found for this module');
+    }
+
+    return {
+      moduleId,
+      score: attempt.correctAnswers,
+      totalQuestions: attempt.totalQuestions,
+      percentage: attempt.percentage,
+      xpEarned: attempt.xpEarned,
+      completedAt: attempt.attemptedAt.toISOString(),
+      answers: attempt.answers.map((a) => ({
+        question: a.question.question,
+        options: [a.question.optionA, a.question.optionB, a.question.optionC, a.question.optionD],
+        selectedAnswer: a.selectedAnswer,
+        correctAnswer: a.question.correctAnswer,
+        isCorrect: a.isCorrect,
+        explanation: a.question.explanation,
+      })),
+    };
   }
 }
