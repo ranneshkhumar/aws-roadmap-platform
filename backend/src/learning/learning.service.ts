@@ -137,6 +137,7 @@ export class LearningService {
       );
 
       topicSummaries.push({
+        id: topic.id,
         slug: topic.slug,
         name: topic.name,
         description: topic.description,

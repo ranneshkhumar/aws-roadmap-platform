@@ -211,6 +211,9 @@ export class ProgressService {
       }
 
       // 4. Update progress and unlock next module if new completion
+      let topicCompleted = false;
+      let nextTopicUnlocked = false;
+
       if (!isAlreadyCompleted) {
         await tx.userModuleProgress.upsert({
           where: {
@@ -233,7 +236,9 @@ export class ProgressService {
         });
 
         // 5. Unlock next module using topic/level/module progression
-        await this.unlockNextModule(tx, userId, module);
+        const unlockResult = await this.unlockNextModule(tx, userId, module);
+        topicCompleted = unlockResult.topicCompleted;
+        nextTopicUnlocked = unlockResult.nextTopicUnlocked;
       } else {
         // If already completed, just update the score if needed (keep highest)
         const currentBestScore = existingProgress.score ?? 0;
@@ -257,6 +262,8 @@ export class ProgressService {
           (correctAnswersCount / totalQuestionsCount) * 100,
         ),
         xpEarned,
+        topicCompleted,
+        nextTopicUnlocked,
       };
     });
   }
@@ -270,8 +277,10 @@ export class ProgressService {
       level: ModuleLevel | null;
       orderIndex: number;
     },
-  ) {
-    if (!completedModule.topicId || !completedModule.level) return;
+  ): Promise<{ topicCompleted: boolean; nextTopicUnlocked: boolean }> {
+    if (!completedModule.topicId || !completedModule.level) {
+      return { topicCompleted: false, nextTopicUnlocked: false };
+    }
 
     const currentLevel = completedModule.level;
 
@@ -287,7 +296,7 @@ export class ProgressService {
 
     if (nextModuleInLevel) {
       await this.createOrUpdateUnlock(tx, userId, nextModuleInLevel.id);
-      return;
+      return { topicCompleted: false, nextTopicUnlocked: false };
     }
 
     // STEP 2: Verify ALL modules in current level are COMPLETED before advancing
@@ -308,7 +317,9 @@ export class ProgressService {
       },
     });
 
-    if (completedLevelCount < allLevelModuleIds.length) return;
+    if (completedLevelCount < allLevelModuleIds.length) {
+      return { topicCompleted: false, nextTopicUnlocked: false };
+    }
 
     // STEP 3: Level fully completed — find first module of next level in same topic
     const currentLevelIndex = LEVEL_ORDER[currentLevel];
@@ -326,7 +337,7 @@ export class ProgressService {
 
       if (firstModuleOfNextLevel) {
         await this.createOrUpdateUnlock(tx, userId, firstModuleOfNextLevel.id);
-        return;
+        return { topicCompleted: false, nextTopicUnlocked: false };
       }
     }
 
@@ -347,7 +358,9 @@ export class ProgressService {
       },
     });
 
-    if (completedTopicCount < allTopicModuleIds.length) return;
+    if (completedTopicCount < allTopicModuleIds.length) {
+      return { topicCompleted: false, nextTopicUnlocked: false };
+    }
 
     // STEP 5: Topic fully completed — find next topic
     const currentTopic = await tx.topic.findUnique({
@@ -355,7 +368,9 @@ export class ProgressService {
       select: { orderIndex: true },
     });
 
-    if (!currentTopic) return;
+    if (!currentTopic) {
+      return { topicCompleted: true, nextTopicUnlocked: false };
+    }
 
     const nextTopic = await tx.topic.findFirst({
       where: {
@@ -378,6 +393,8 @@ export class ProgressService {
         await this.createOrUpdateUnlock(tx, userId, firstBeginnerModule.id);
       }
     }
+
+    return { topicCompleted: true, nextTopicUnlocked: !!nextTopic };
   }
 
   private async createOrUpdateUnlock(

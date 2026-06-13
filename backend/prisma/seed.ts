@@ -2,7 +2,19 @@ import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pkg from 'pg';
 import * as bcrypt from 'bcrypt';
-import { TOPIC, CURRICULUM_MODULES } from './curriculum/aws-roadmap';
+import {
+  TOPIC as AWS_TOPIC,
+  CURRICULUM_MODULES as AWS_MODULES,
+} from './curriculum/aws-roadmap';
+import {
+  TOPIC as DEVOPS_TOPIC,
+  CURRICULUM_MODULES as DEVOPS_MODULES,
+} from './curriculum/devops-foundations';
+
+const CURRICULA = [
+  { topic: AWS_TOPIC, modules: AWS_MODULES },
+  { topic: DEVOPS_TOPIC, modules: DEVOPS_MODULES },
+];
 
 const { Pool } = pkg;
 
@@ -86,87 +98,108 @@ async function main() {
     console.log('Placeholder modules deleted.');
   }
 
-  // ── 3. Upsert Topic ─────────────────────────────────────────────
-  const topic = await prisma.topic.upsert({
-    where: { slug: TOPIC.slug },
-    update: {
-      name: TOPIC.name,
-      description: TOPIC.description,
-      orderIndex: TOPIC.orderIndex,
-    },
-    create: TOPIC,
-  });
-  console.log(`Topic "${topic.name}" (${topic.slug}) ready, id=${topic.id}`);
-
-  // ── 4. Seed Modules, Slides, and Quiz Questions ─────────────────
+  // ── 3. Seed Curricula (Topics + Modules + Slides + Questions) ──
   let slideTotal = 0;
   let questionTotal = 0;
+  let moduleTotal = 0;
 
-  for (const m of CURRICULUM_MODULES) {
-    const dbModule = await prisma.module.upsert({
-      where: { slug: m.slug },
+  for (const curriculum of CURRICULA) {
+    const topic = await prisma.topic.upsert({
+      where: { slug: curriculum.topic.slug },
       update: {
-        name: m.name,
-        description: m.description,
-        tier: m.tier,
-        xpPoints: m.xpPoints,
-        estimatedMinutes: m.estimatedMinutes,
-        orderIndex: m.orderIndex,
-        topicId: topic.id,
-        level: m.level,
+        name: curriculum.topic.name,
+        description: curriculum.topic.description,
+        orderIndex: curriculum.topic.orderIndex,
       },
-      create: {
-        slug: m.slug,
-        name: m.name,
-        description: m.description,
-        tier: m.tier,
-        xpPoints: m.xpPoints,
-        estimatedMinutes: m.estimatedMinutes,
-        orderIndex: m.orderIndex,
-        topicId: topic.id,
-        level: m.level,
-      },
+      create: curriculum.topic,
     });
+    console.log(`Topic "${topic.name}" (${topic.slug}) ready, id=${topic.id}`);
 
-    // Delete existing slides and questions for idempotent re-seed
-    await prisma.learningSlide.deleteMany({ where: { moduleId: dbModule.id } });
-    await prisma.quizQuestion.deleteMany({ where: { moduleId: dbModule.id } });
-
-    // Create slides
-    if (m.slides.length > 0) {
-      await prisma.learningSlide.createMany({
-        data: m.slides.map((s, i) => ({
-          moduleId: dbModule.id,
-          title: s.title,
-          layoutType: s.layoutType,
-          imageUrl: s.imageUrl,
-          bullets: s.bullets,
-          orderIndex: i,
-        })),
-      });
-      slideTotal += m.slides.length;
+    // Clean up modules no longer in this curriculum
+    const currentSlugs = new Set(curriculum.modules.map((m) => m.slug));
+    const existingModules = await prisma.module.findMany({
+      where: { topicId: topic.id },
+      select: { id: true, slug: true },
+    });
+    for (const existing of existingModules) {
+      if (!currentSlugs.has(existing.slug)) {
+        await prisma.quizAttemptAnswer.deleteMany({ where: { attempt: { moduleId: existing.id } } });
+        await prisma.quizAttempt.deleteMany({ where: { moduleId: existing.id } });
+        await prisma.userModuleProgress.deleteMany({ where: { moduleId: existing.id } });
+        await prisma.learningSlide.deleteMany({ where: { moduleId: existing.id } });
+        await prisma.quizQuestion.deleteMany({ where: { moduleId: existing.id } });
+        await prisma.module.delete({ where: { id: existing.id } });
+      }
     }
 
-    // Create quiz questions
-    if (m.quiz.length > 0) {
-      await prisma.quizQuestion.createMany({
-        data: m.quiz.map((q, i) => ({
-          moduleId: dbModule.id,
-          question: q.question,
-          optionA: q.optionA,
-          optionB: q.optionB,
-          optionC: q.optionC,
-          optionD: q.optionD,
-          correctAnswer: q.correctAnswer,
-          explanation: q.explanation,
-          orderIndex: i,
-        })),
+    for (const m of curriculum.modules) {
+      const dbModule = await prisma.module.upsert({
+        where: { slug: m.slug },
+        update: {
+          name: m.name,
+          description: m.description,
+          tier: m.tier,
+          xpPoints: m.xpPoints,
+          estimatedMinutes: m.estimatedMinutes,
+          orderIndex: m.orderIndex,
+          topicId: topic.id,
+          level: m.level,
+        },
+        create: {
+          slug: m.slug,
+          name: m.name,
+          description: m.description,
+          tier: m.tier,
+          xpPoints: m.xpPoints,
+          estimatedMinutes: m.estimatedMinutes,
+          orderIndex: m.orderIndex,
+          topicId: topic.id,
+          level: m.level,
+        },
       });
-      questionTotal += m.quiz.length;
+
+      // Delete existing slides and questions for idempotent re-seed
+      await prisma.learningSlide.deleteMany({ where: { moduleId: dbModule.id } });
+      await prisma.quizQuestion.deleteMany({ where: { moduleId: dbModule.id } });
+
+      // Create slides
+      if (m.slides.length > 0) {
+        await prisma.learningSlide.createMany({
+          data: m.slides.map((s, i) => ({
+            moduleId: dbModule.id,
+            title: s.title,
+            layoutType: s.layoutType,
+            imageUrl: s.imageUrl,
+            bullets: s.bullets,
+            orderIndex: i,
+          })),
+        });
+        slideTotal += m.slides.length;
+      }
+
+      // Create quiz questions
+      if (m.quiz.length > 0) {
+        await prisma.quizQuestion.createMany({
+          data: m.quiz.map((q, i) => ({
+            moduleId: dbModule.id,
+            question: q.question,
+            optionA: q.optionA,
+            optionB: q.optionB,
+            optionC: q.optionC,
+            optionD: q.optionD,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+            orderIndex: i,
+          })),
+        });
+        questionTotal += m.quiz.length;
+      }
     }
+
+    moduleTotal += curriculum.modules.length;
   }
 
-  console.log(`Seeded ${CURRICULUM_MODULES.length} modules, ${slideTotal} slides, ${questionTotal} questions!`);
+  console.log(`Seeded ${CURRICULA.length} topics, ${moduleTotal} modules, ${slideTotal} slides, ${questionTotal} questions!`);
 }
 
 main()
