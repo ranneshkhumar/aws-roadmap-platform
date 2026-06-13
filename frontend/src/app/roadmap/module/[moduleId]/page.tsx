@@ -120,20 +120,17 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
         const dbId = activeModule.id;
 
-        // 2. Fetch learner progress profile to perform unlock validation & completed modules policy check
-        const progress = await progressService.getMyProgress();
-
-        const isCompleted = progress.completedModules.includes(dbId);
-        const isUnlocked = progress.unlockedModules.includes(dbId);
+        // 2. Fetch module progress for access control
+        const moduleProgress = await progressService.getModuleProgress(dbId);
 
         // Unlock Validation
-        if (!isCompleted && !isUnlocked) {
+        if (moduleProgress.status === 'LOCKED') {
           console.warn(`Module "${moduleId}" (ID: ${dbId}) is locked for this user.`);
           router.replace('/learn');
           return;
         }
 
-        setIsCompletedModule(isCompleted);
+        setIsCompletedModule(moduleProgress.status === 'COMPLETED');
 
         // 3. Fetch module slides
         const fetchedSlides = await slidesService.getSlides(dbId);
@@ -184,7 +181,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         setQuizQuestions(fetchedQuestions.map(mapBackendQuestionToFrontend));
 
         // Initial step resolution
-        if (initialMode === 'review' && isCompleted) {
+        if (initialMode === 'review' && moduleProgress.status === 'COMPLETED') {
           const reviewData = await progressService.getQuizReview(dbId);
           setQuizReview(reviewData);
           setStep('review');

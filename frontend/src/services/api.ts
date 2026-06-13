@@ -88,8 +88,6 @@ export interface UpdateModuleDto {
 export interface UserProgress {
   currentXP: number;
   streak: number;
-  completedModules: string[];
-  unlockedModules: string[];
 }
 
 export interface ModuleProgress {

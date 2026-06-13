@@ -143,7 +143,7 @@ describe('Progress Module (e2e)', () => {
   }, 30000);
 
   describe('GET /progress/me (Initial state)', () => {
-    it('should return initial progress with 0 XP and implicitly unlock Module A (first module)', async () => {
+    it('should return initial progress with 0 XP and 0 streak (persisted state)', async () => {
       const res = await request(app.getHttpServer())
         .get('/progress/me')
         .set('Authorization', `Bearer ${learnerToken}`)
@@ -151,8 +151,23 @@ describe('Progress Module (e2e)', () => {
 
       expect(res.body.currentXP).toBe(0);
       expect(res.body.streak).toBe(3);
-      expect(res.body.completedModules).toEqual([]);
-      expect(res.body.unlockedModules).toEqual([moduleAId]); // implicitly unlocked
+    });
+
+    it('should perform no DB writes on GET /progress/me', async () => {
+      const before = await prisma.userModuleProgress.findMany({
+        where: { userId: learnerId },
+      });
+
+      await request(app.getHttpServer())
+        .get('/progress/me')
+        .set('Authorization', `Bearer ${learnerToken}`)
+        .expect(200);
+
+      const after = await prisma.userModuleProgress.findMany({
+        where: { userId: learnerId },
+      });
+
+      expect(after.length).toBe(before.length);
     });
   });
 
@@ -300,8 +315,133 @@ describe('Progress Module (e2e)', () => {
         .expect(200);
 
       expect(res.body.currentXP).toBe(200);
-      expect(res.body.completedModules).toEqual([moduleAId]);
-      expect(res.body.unlockedModules).toEqual([moduleBId]);
+    });
+  });
+
+  describe('GET /modules/:moduleId/progress (Status transitions)', () => {
+    it('should return COMPLETED for a completed module', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/modules/${moduleAId}/progress`)
+        .set('Authorization', `Bearer ${learnerToken}`)
+        .expect(200);
+
+      expect(res.body.status).toBe('COMPLETED');
+    });
+
+    it('should return UNLOCKED for the next module after completion', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/modules/${moduleBId}/progress`)
+        .set('Authorization', `Bearer ${learnerToken}`)
+        .expect(200);
+
+      expect(res.body.status).toBe('UNLOCKED');
+    });
+  });
+
+  describe('POST /modules/:moduleId/quiz/attempt (Authorization guard)', () => {
+    it('should reject quiz attempt for a LOCKED module with 403', async () => {
+      // Module B is UNLOCKED, not LOCKED — create a new locked module
+      const lockedModule = await prisma.module.create({
+        data: {
+          name: 'Locked Module',
+          description: 'Should be locked',
+          tier: 'Fundamentals',
+          xpPoints: 50,
+          estimatedMinutes: 10,
+          orderIndex: 99,
+          slug: 'locked-module-guard-test',
+        },
+      });
+      await prisma.quizQuestion.create({
+        data: {
+          moduleId: lockedModule.id,
+          question: 'Q',
+          optionA: 'A',
+          optionB: 'B',
+          optionC: 'C',
+          optionD: 'D',
+          correctAnswer: 'A',
+          explanation: 'Exp',
+          orderIndex: 0,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/modules/${lockedModule.id}/quiz/attempt`)
+        .set('Authorization', `Bearer ${learnerToken}`)
+        .send({ answers: [{ questionOrder: 0, selectedAnswer: 'A' }] })
+        .expect(403);
+
+      expect(res.body.message).toContain('locked');
+
+      // Cleanup
+      await prisma.quizQuestion.deleteMany({
+        where: { moduleId: lockedModule.id },
+      });
+      await prisma.module.delete({ where: { id: lockedModule.id } });
+    });
+  });
+
+  describe('First-module fallback (New user with no progress)', () => {
+    let newUserToken: string;
+    let newUserId: string;
+
+    beforeAll(async () => {
+      const passwordHash = await bcrypt.hash('Password123!', 10);
+      const email = 'new-user-progress-test@test.com';
+      await prisma.user.deleteMany({ where: { email } });
+
+      const user = await prisma.user.create({
+        data: {
+          name: 'New User Progress Test',
+          email,
+          passwordHash,
+          role: Role.ENTHUSIAST,
+          xp: 0,
+          streak: 0,
+        },
+      });
+      newUserId = user.id;
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: 'Password123!' })
+        .expect(201);
+      newUserToken = loginRes.body.accessToken;
+    });
+
+    afterAll(async () => {
+      await prisma.userModuleProgress.deleteMany({
+        where: { userId: newUserId },
+      });
+      await prisma.user.deleteMany({ where: { id: newUserId } });
+    });
+
+    it('GET /progress/me returns 0 XP for new user', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/progress/me')
+        .set('Authorization', `Bearer ${newUserToken}`)
+        .expect(200);
+
+      expect(res.body.currentXP).toBe(0);
+    });
+
+    it('GET /modules/:firstModuleId/progress returns UNLOCKED via fallback', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/modules/${moduleAId}/progress`)
+        .set('Authorization', `Bearer ${newUserToken}`)
+        .expect(200);
+
+      expect(res.body.status).toBe('UNLOCKED');
+    });
+
+    it('GET /modules/:nonFirstModuleId/progress returns LOCKED for new user', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/modules/${moduleBId}/progress`)
+        .set('Authorization', `Bearer ${newUserToken}`)
+        .expect(200);
+
+      expect(res.body.status).toBe('LOCKED');
     });
   });
 });

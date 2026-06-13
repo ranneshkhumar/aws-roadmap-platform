@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ModuleLevel, ProgressStatus } from '../../generated/prisma/client.js';
 import { TopicListResponseDto, TopicSummaryDto } from './dto/topic-summary.dto';
@@ -21,6 +25,24 @@ const LEVEL_ORDER: Record<ModuleLevel, number> = {
 @Injectable()
 export class LearningService {
   constructor(private prisma: PrismaService) {}
+
+  private async findFirstBeginnerModuleOfFirstTopic() {
+    const firstTopic = await this.prisma.topic.findFirst({
+      orderBy: { orderIndex: 'asc' },
+      select: { id: true },
+    });
+
+    if (!firstTopic) return null;
+
+    return this.prisma.module.findFirst({
+      where: {
+        topicId: firstTopic.id,
+        level: ModuleLevel.BEGINNER,
+      },
+      orderBy: { orderIndex: 'asc' },
+      select: { id: true },
+    });
+  }
 
   private computeTopicProgress(
     topicOrderIndex: number,
@@ -237,6 +259,10 @@ export class LearningService {
       questionCountMap.set(qc.moduleId, qc._count.id);
     }
 
+    // Determine the first Beginner module of the first Topic for fallback unlock
+    const firstBeginnerModule =
+      await this.findFirstBeginnerModuleOfFirstTopic();
+
     const sortedModules = [...modules].sort((a, b) => {
       const levelA = a.level ? LEVEL_ORDER[a.level] : 3;
       const levelB = b.level ? LEVEL_ORDER[b.level] : 3;
@@ -244,12 +270,12 @@ export class LearningService {
       return a.orderIndex - b.orderIndex;
     });
 
-    const moduleSummaries: ModuleSummaryDto[] = sortedModules.map((mod, index) => {
+    const moduleSummaries: ModuleSummaryDto[] = sortedModules.map((mod) => {
       const progress = progressMap.get(mod.id);
       let status: ProgressStatus;
       if (progress) {
         status = progress.status;
-      } else if (index === 0) {
+      } else if (firstBeginnerModule?.id === mod.id) {
         status = 'UNLOCKED';
       } else {
         status = 'LOCKED';
@@ -359,16 +385,56 @@ export class LearningService {
       return a.orderIndex - b.orderIndex;
     });
 
-    const nextModule = sortedModules.find((mod, index) => {
+    // Find the first UNLOCKED module that is not COMPLETED
+    const nextModule = sortedModules.find((mod) => {
       const status = progressMap.get(mod.id);
       if (status === 'COMPLETED') return false;
       if (status === 'UNLOCKED') return true;
-      if (!status && index === 0) return true;
       return false;
     });
 
     if (!nextModule) {
-      return { module: null };
+      // Fallback: first Beginner module of first Topic (for new learners with no progress)
+      const firstBeginnerModule =
+        await this.findFirstBeginnerModuleOfFirstTopic();
+      if (!firstBeginnerModule) {
+        return { module: null };
+      }
+
+      const fallbackStatus = progressMap.get(firstBeginnerModule.id);
+      if (fallbackStatus === 'COMPLETED') {
+        return { module: null };
+      }
+
+      const fallbackMod = allModules.find(
+        (m) => m.id === firstBeginnerModule.id,
+      );
+      if (!fallbackMod) {
+        return { module: null };
+      }
+
+      const topic = topicMap.get(fallbackMod.topicId || '');
+      const [slideCount, questionCount] = await Promise.all([
+        this.prisma.learningSlide.count({
+          where: { moduleId: fallbackMod.id },
+        }),
+        this.prisma.quizQuestion.count({ where: { moduleId: fallbackMod.id } }),
+      ]);
+
+      return {
+        module: {
+          slug: fallbackMod.slug,
+          name: fallbackMod.name,
+          description: fallbackMod.description,
+          level: fallbackMod.level ?? ModuleLevel.BEGINNER,
+          tier: fallbackMod.tier,
+          topicSlug: topic?.slug || '',
+          topicName: topic?.name || '',
+          estimatedMinutes: fallbackMod.estimatedMinutes,
+          slideCount,
+          questionCount,
+        },
+      };
     }
 
     const topic = topicMap.get(nextModule.topicId || '');

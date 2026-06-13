@@ -1,4 +1,7 @@
-import { ModuleLevel, ProgressStatus } from '../../../generated/prisma/client.js';
+import {
+  ModuleLevel,
+  ProgressStatus,
+} from '../../../generated/prisma/client.js';
 
 export class ModuleSummaryDto {
   slug: string;

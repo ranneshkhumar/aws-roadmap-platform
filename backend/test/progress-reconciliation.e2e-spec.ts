@@ -170,8 +170,10 @@ describe('Progress Reconciliation (e2e)', () => {
       await completeModule(moduleF.id);
 
       // Verify all completed
-      const progress = await getProgress();
-      expect(progress.completedModules.length).toBe(6);
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(6);
 
       // Insert G after B (orderIndex 2, shifting C-F)
       moduleG = await prisma.module.create({
@@ -218,34 +220,18 @@ describe('Progress Reconciliation (e2e)', () => {
       });
     }, 30000);
 
-    it('should unlock only G (first missing), lock all others', async () => {
-      const progress = await getProgress();
-
-      expect(progress.completedModules.sort()).toEqual(
-        [
-          moduleA.id,
-          moduleB.id,
-          moduleC.id,
-          moduleD.id,
-          moduleE.id,
-          moduleF.id,
-        ].sort(),
-      );
-      expect(progress.unlockedModules).toEqual([moduleG.id]);
+    it('should not write any new records after insertion (no reconciliation)', async () => {
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(6);
     });
 
-    it('should persist reconciliation in database', async () => {
-      const progressG = await prisma.userModuleProgress.findUnique({
-        where: { userId_moduleId: { userId: learnerId, moduleId: moduleG.id } },
-      });
-      expect(progressG!.status).toBe('UNLOCKED');
-
-      // Verify no other UNLOCKED records exist
+    it('should not create any UNLOCKED records in database', async () => {
       const allUnlocked = await prisma.userModuleProgress.findMany({
         where: { userId: learnerId, status: 'UNLOCKED' },
       });
-      expect(allUnlocked.length).toBe(1);
-      expect(allUnlocked[0].moduleId).toBe(moduleG.id);
+      expect(allUnlocked.length).toBe(0);
     });
   });
 
@@ -265,11 +251,10 @@ describe('Progress Reconciliation (e2e)', () => {
       await completeModule(moduleA.id);
       await completeModule(moduleB.id);
 
-      const progress = await getProgress();
-      expect(progress.completedModules.sort()).toEqual(
-        [moduleA.id, moduleB.id].sort(),
-      );
-      expect(progress.unlockedModules).toEqual([moduleC.id]);
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(2);
 
       // Insert G before C (as new prerequisite)
       moduleG = await prisma.module.create({
@@ -304,23 +289,18 @@ describe('Progress Reconciliation (e2e)', () => {
       });
     }, 30000);
 
-    it('should unlock G, re-lock C (previously unlocked)', async () => {
-      const progress = await getProgress();
-
-      expect(progress.completedModules.sort()).toEqual(
-        [moduleA.id, moduleB.id].sort(),
-      );
-      expect(progress.unlockedModules).toEqual([moduleG.id]);
-
-      // C should no longer be in unlockedModules
-      expect(progress.unlockedModules).not.toContain(moduleC.id);
+    it('should not modify progress records after insertion (no reconciliation)', async () => {
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(2);
     });
 
-    it('should persist C as LOCKED in database', async () => {
+    it('should not modify C status in database', async () => {
       const progressC = await prisma.userModuleProgress.findUnique({
         where: { userId_moduleId: { userId: learnerId, moduleId: moduleC.id } },
       });
-      expect(progressC!.status).toBe('LOCKED');
+      expect(progressC!.status).toBe('UNLOCKED');
     });
   });
 
@@ -343,13 +323,11 @@ describe('Progress Reconciliation (e2e)', () => {
       moduleH = await createModule('H', 3, 'Associate');
     }, 30000);
 
-    it('should unlock G (first module of new island), lock H', async () => {
-      const progress = await getProgress();
-
-      expect(progress.completedModules.sort()).toEqual(
-        [moduleA.id, moduleB.id].sort(),
-      );
-      expect(progress.unlockedModules).toEqual([moduleG.id]);
+    it('should not create progress records for new modules (no reconciliation)', async () => {
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(2);
     });
   });
 
@@ -367,9 +345,10 @@ describe('Progress Reconciliation (e2e)', () => {
       // Complete A only → B is UNLOCKED
       await completeModule(moduleA.id);
 
-      const progress = await getProgress();
-      expect(progress.completedModules).toEqual([moduleA.id]);
-      expect(progress.unlockedModules).toEqual([moduleB.id]);
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(1);
 
       // Reorder: C(0) A(1) B(2) — C is now first
       await prisma.module.update({
@@ -386,17 +365,11 @@ describe('Progress Reconciliation (e2e)', () => {
       });
     }, 30000);
 
-    it('should unlock C (now first in order, not completed), keep A completed, lock B', async () => {
-      const progress = await getProgress();
-
-      // A is still completed
-      expect(progress.completedModules).toEqual([moduleA.id]);
-
-      // C is first in new order and not completed → should be unlocked
-      expect(progress.unlockedModules).toContain(moduleC.id);
-
-      // Only one module should be unlocked
-      expect(progress.unlockedModules.length).toBe(1);
+    it('should not modify progress records after reorder (no reconciliation)', async () => {
+      const completedCount = await prisma.userModuleProgress.count({
+        where: { userId: learnerId, status: 'COMPLETED' },
+      });
+      expect(completedCount).toBe(1);
     });
   });
 
@@ -443,14 +416,13 @@ describe('Progress Reconciliation (e2e)', () => {
       await prisma.user.deleteMany({ where: { id: newLearnerId } });
     }, 30000);
 
-    it('should unlock only the first module, lock all others', async () => {
+    it('should return 0 XP for new user (no initialization write)', async () => {
       const res = await request(app.getHttpServer())
         .get('/progress/me')
         .set('Authorization', `Bearer ${newLearnerToken}`)
         .expect(200);
 
-      expect(res.body.completedModules).toEqual([]);
-      expect(res.body.unlockedModules).toEqual([moduleA.id]);
+      expect(res.body.currentXP).toBe(0);
     });
   });
 
@@ -543,16 +515,16 @@ describe('Progress Reconciliation (e2e)', () => {
       });
     }, 30000);
 
-    it('should unlock only X (first missing in new order), lock everything after', async () => {
-      const progress = await getProgress();
-
+    it('should not create progress records for inserted modules (no reconciliation)', async () => {
       // A B C still completed
-      expect(progress.completedModules.sort()).toEqual(
-        [moduleA.id, moduleB.id, moduleC.id].sort(),
-      );
-
-      // X is first unsatisfied (new order: A=0, X=1, B=2, C=3, Y=4, D=5, E=6)
-      expect(progress.unlockedModules).toEqual([moduleX.id]);
+      const completedCount = await prisma.userModuleProgress.count({
+        where: {
+          userId: learnerId,
+          status: 'COMPLETED',
+          moduleId: { in: [moduleA.id, moduleB.id, moduleC.id] },
+        },
+      });
+      expect(completedCount).toBe(3);
     });
   });
 });

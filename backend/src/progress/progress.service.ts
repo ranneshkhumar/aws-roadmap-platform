@@ -1,14 +1,49 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuizAttemptDto } from './dto/quiz-attempt.dto';
+import { ModuleLevel, Prisma } from '../../generated/prisma/client.js';
+
+const LEVEL_ORDER: Record<ModuleLevel, number> = {
+  [ModuleLevel.BEGINNER]: 0,
+  [ModuleLevel.INTERMEDIATE]: 1,
+  [ModuleLevel.ADVANCED]: 2,
+};
+
+const LEVEL_VALUES: ModuleLevel[] = [
+  ModuleLevel.BEGINNER,
+  ModuleLevel.INTERMEDIATE,
+  ModuleLevel.ADVANCED,
+];
 
 @Injectable()
 export class ProgressService {
+  private readonly logger = new Logger(ProgressService.name);
+
   constructor(private prisma: PrismaService) {}
+
+  private async findFirstBeginnerModuleOfFirstTopic() {
+    const firstTopic = await this.prisma.topic.findFirst({
+      orderBy: { orderIndex: 'asc' },
+      select: { id: true },
+    });
+
+    if (!firstTopic) return null;
+
+    return this.prisma.module.findFirst({
+      where: {
+        topicId: firstTopic.id,
+        level: ModuleLevel.BEGINNER,
+      },
+      orderBy: { orderIndex: 'asc' },
+      select: { id: true },
+    });
+  }
 
   async getUserProgress(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -19,71 +54,9 @@ export class ProgressService {
       throw new NotFoundException(`User with ID "${userId}" not found`);
     }
 
-    const progressList = await this.prisma.userModuleProgress.findMany({
-      where: { userId },
-    });
-
-    const completedModules = progressList
-      .filter((p) => p.status === 'COMPLETED')
-      .map((p) => p.moduleId);
-
-    const unlockedModules = progressList
-      .filter((p) => p.status === 'UNLOCKED')
-      .map((p) => p.moduleId);
-
-    // Reconcile progression against current curriculum order.
-    // Find the first module (by orderIndex) that the learner has not completed,
-    // and ensure exactly that module is UNLOCKED. All later missing modules stay LOCKED.
-    const allModules = await this.prisma.module.findMany({
-      orderBy: { orderIndex: 'asc' },
-      select: { id: true },
-    });
-
-    if (allModules.length > 0) {
-      const progressMap = new Map(
-        progressList.map((p) => [p.moduleId, p.status]),
-      );
-      let reconciledUnlock: string | null = null;
-
-      for (const mod of allModules) {
-        const status = progressMap.get(mod.id);
-        if (status === 'COMPLETED') continue;
-
-        // First missing module — should be UNLOCKED
-        if (!reconciledUnlock) {
-          reconciledUnlock = mod.id;
-
-          if (status !== 'UNLOCKED') {
-            await this.prisma.userModuleProgress.upsert({
-              where: { userId_moduleId: { userId, moduleId: mod.id } },
-              create: { userId, moduleId: mod.id, status: 'UNLOCKED' },
-              update: { status: 'UNLOCKED' },
-            });
-
-            if (!unlockedModules.includes(mod.id)) {
-              unlockedModules.push(mod.id);
-            }
-          }
-        } else {
-          // All later missing modules — ensure LOCKED
-          if (status === 'UNLOCKED') {
-            await this.prisma.userModuleProgress.update({
-              where: { userId_moduleId: { userId, moduleId: mod.id } },
-              data: { status: 'LOCKED' },
-            });
-
-            const idx = unlockedModules.indexOf(mod.id);
-            if (idx !== -1) unlockedModules.splice(idx, 1);
-          }
-        }
-      }
-    }
-
     return {
       currentXP: user.xp,
       streak: user.streak,
-      completedModules,
-      unlockedModules,
     };
   }
 
@@ -98,12 +71,11 @@ export class ProgressService {
       return { status: progress.status };
     }
 
-    // Fallback: Check if it is the first module (lowest orderIndex)
-    const firstModule = await this.prisma.module.findFirst({
-      orderBy: { orderIndex: 'asc' },
-    });
+    // Fallback: Check if it is the first Beginner module of the first Topic
+    const firstBeginnerModule =
+      await this.findFirstBeginnerModuleOfFirstTopic();
 
-    if (firstModule && firstModule.id === moduleId) {
+    if (firstBeginnerModule && firstBeginnerModule.id === moduleId) {
       return { status: 'UNLOCKED' };
     }
 
@@ -121,6 +93,28 @@ export class ProgressService {
 
     if (!module) {
       throw new NotFoundException(`Module with ID "${moduleId}" not found`);
+    }
+
+    // Authorization guard: verify module is accessible
+    const progress = await this.prisma.userModuleProgress.findUnique({
+      where: { userId_moduleId: { userId, moduleId } },
+    });
+
+    if (progress) {
+      if (progress.status === 'LOCKED') {
+        throw new ForbiddenException(
+          'Module is locked. Complete the previous module first.',
+        );
+      }
+    } else {
+      // No progress record — only allow if this is the first Beginner module of the first Topic
+      const firstBeginnerModule =
+        await this.findFirstBeginnerModuleOfFirstTopic();
+      if (firstBeginnerModule?.id !== moduleId) {
+        throw new ForbiddenException(
+          'Module is locked. Complete the previous module first.',
+        );
+      }
     }
 
     // Load questions to evaluate score server-side
@@ -238,49 +232,8 @@ export class ProgressService {
           },
         });
 
-        // 5. Unlock exactly one next module in sequence (module with the next higher orderIndex)
-        const nextModule = await tx.module.findFirst({
-          where: {
-            orderIndex: {
-              gt: module.orderIndex,
-            },
-          },
-          orderBy: { orderIndex: 'asc' },
-        });
-
-        if (nextModule) {
-          const nextProgress = await tx.userModuleProgress.findUnique({
-            where: {
-              userId_moduleId: {
-                userId,
-                moduleId: nextModule.id,
-              },
-            },
-          });
-
-          // Only unlock if not already created/completed/unlocked
-          if (!nextProgress) {
-            await tx.userModuleProgress.create({
-              data: {
-                userId,
-                moduleId: nextModule.id,
-                status: 'UNLOCKED',
-              },
-            });
-          } else if (nextProgress.status === 'LOCKED') {
-            await tx.userModuleProgress.update({
-              where: {
-                userId_moduleId: {
-                  userId,
-                  moduleId: nextModule.id,
-                },
-              },
-              data: {
-                status: 'UNLOCKED',
-              },
-            });
-          }
-        }
+        // 5. Unlock next module using topic/level/module progression
+        await this.unlockNextModule(tx, userId, module);
       } else {
         // If already completed, just update the score if needed (keep highest)
         const currentBestScore = existingProgress.score ?? 0;
@@ -306,6 +259,150 @@ export class ProgressService {
         xpEarned,
       };
     });
+  }
+
+  private async unlockNextModule(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    completedModule: {
+      id: string;
+      topicId: string | null;
+      level: ModuleLevel | null;
+      orderIndex: number;
+    },
+  ) {
+    if (!completedModule.topicId || !completedModule.level) return;
+
+    const currentLevel = completedModule.level;
+
+    // STEP 1: Find next module in same topic + same level
+    const nextModuleInLevel = await tx.module.findFirst({
+      where: {
+        topicId: completedModule.topicId,
+        level: currentLevel,
+        orderIndex: { gt: completedModule.orderIndex },
+      },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    if (nextModuleInLevel) {
+      await this.createOrUpdateUnlock(tx, userId, nextModuleInLevel.id);
+      return;
+    }
+
+    // STEP 2: Verify ALL modules in current level are COMPLETED before advancing
+    const allModulesInLevel = await tx.module.findMany({
+      where: {
+        topicId: completedModule.topicId,
+        level: currentLevel,
+      },
+      select: { id: true },
+    });
+
+    const allLevelModuleIds = allModulesInLevel.map((m) => m.id);
+    const completedLevelCount = await tx.userModuleProgress.count({
+      where: {
+        userId,
+        moduleId: { in: allLevelModuleIds },
+        status: 'COMPLETED',
+      },
+    });
+
+    if (completedLevelCount < allLevelModuleIds.length) return;
+
+    // STEP 3: Level fully completed — find first module of next level in same topic
+    const currentLevelIndex = LEVEL_ORDER[currentLevel];
+
+    for (let i = currentLevelIndex + 1; i < LEVEL_VALUES.length; i++) {
+      const nextLevel = LEVEL_VALUES[i];
+
+      const firstModuleOfNextLevel = await tx.module.findFirst({
+        where: {
+          topicId: completedModule.topicId,
+          level: nextLevel,
+        },
+        orderBy: { orderIndex: 'asc' },
+      });
+
+      if (firstModuleOfNextLevel) {
+        await this.createOrUpdateUnlock(tx, userId, firstModuleOfNextLevel.id);
+        return;
+      }
+    }
+
+    // STEP 4: Verify ALL modules in current topic are COMPLETED before advancing
+    const allModulesInTopic = await tx.module.findMany({
+      where: {
+        topicId: completedModule.topicId,
+      },
+      select: { id: true },
+    });
+
+    const allTopicModuleIds = allModulesInTopic.map((m) => m.id);
+    const completedTopicCount = await tx.userModuleProgress.count({
+      where: {
+        userId,
+        moduleId: { in: allTopicModuleIds },
+        status: 'COMPLETED',
+      },
+    });
+
+    if (completedTopicCount < allTopicModuleIds.length) return;
+
+    // STEP 5: Topic fully completed — find next topic
+    const currentTopic = await tx.topic.findUnique({
+      where: { id: completedModule.topicId },
+      select: { orderIndex: true },
+    });
+
+    if (!currentTopic) return;
+
+    const nextTopic = await tx.topic.findFirst({
+      where: {
+        orderIndex: { gt: currentTopic.orderIndex },
+      },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    if (nextTopic) {
+      // Unlock first Beginner module of next topic
+      const firstBeginnerModule = await tx.module.findFirst({
+        where: {
+          topicId: nextTopic.id,
+          level: ModuleLevel.BEGINNER,
+        },
+        orderBy: { orderIndex: 'asc' },
+      });
+
+      if (firstBeginnerModule) {
+        await this.createOrUpdateUnlock(tx, userId, firstBeginnerModule.id);
+      }
+    }
+  }
+
+  private async createOrUpdateUnlock(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    moduleId: string,
+  ) {
+    const existing = await tx.userModuleProgress.findUnique({
+      where: { userId_moduleId: { userId, moduleId } },
+    });
+
+    if (!existing) {
+      await tx.userModuleProgress.create({
+        data: {
+          userId,
+          moduleId,
+          status: 'UNLOCKED',
+        },
+      });
+    } else if (existing.status === 'LOCKED') {
+      await tx.userModuleProgress.update({
+        where: { userId_moduleId: { userId, moduleId } },
+        data: { status: 'UNLOCKED' },
+      });
+    }
   }
 
   async getQuizReview(userId: string, moduleId: string) {
