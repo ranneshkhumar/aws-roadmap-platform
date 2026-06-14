@@ -280,6 +280,7 @@ describe('ProgressService — Progression Engine', () => {
       const mockTx = {
         userModuleProgress: {
           findUnique: jest.fn().mockResolvedValue(null),
+          count: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
           upsert: jest.fn(),
@@ -344,6 +345,7 @@ describe('ProgressService — Progression Engine', () => {
       const mockTx = {
         userModuleProgress: {
           findUnique: jest.fn().mockResolvedValue(null),
+          count: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
           upsert: jest.fn(),
@@ -410,6 +412,7 @@ describe('ProgressService — Progression Engine', () => {
       const mockTx = {
         userModuleProgress: {
           findUnique: jest.fn().mockResolvedValue(null),
+          count: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
           upsert: jest.fn(),
@@ -477,6 +480,7 @@ describe('ProgressService — Progression Engine', () => {
       const mockTx = {
         userModuleProgress: {
           findUnique: jest.fn().mockResolvedValue(null),
+          count: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
           upsert: jest.fn(),

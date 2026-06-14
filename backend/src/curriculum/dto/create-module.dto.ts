@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, Min, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, IsOptional, IsIn } from 'class-validator';
 
 export class CreateModuleDto {
   @IsString()
@@ -25,4 +25,13 @@ export class CreateModuleDto {
   @IsInt()
   @Min(0)
   orderIndex?: number;
+
+  @IsOptional()
+  @IsString()
+  topicId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['BEGINNER', 'INTERMEDIATE', 'ADVANCED'])
+  level?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 }

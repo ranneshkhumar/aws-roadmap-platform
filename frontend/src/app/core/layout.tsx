@@ -78,8 +78,33 @@ export default function CoreLayout({ children }: CoreLayoutProps) {
           </span>
         </div>
 
-        {/* Empty Sidebar Content Spacer */}
-        <div className="flex-1 bg-slate-50/10" />
+        {/* Sidebar Navigation */}
+        <nav className="flex-1 py-4 px-3 space-y-1">
+          <button
+            onClick={() => router.push('/core/topics')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all",
+              pathname.startsWith('/core/topics')
+                ? "bg-indigo-50 text-indigo-700 border border-indigo-150"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent"
+            )}
+          >
+            <Icons.FolderOpen className="w-4 h-4" />
+            Topics
+          </button>
+          <button
+            onClick={() => router.push('/core/learners')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all",
+              pathname.startsWith('/core/learners')
+                ? "bg-indigo-50 text-indigo-700 border border-indigo-150"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent"
+            )}
+          >
+            <Icons.Users className="w-4 h-4" />
+            Learners
+          </button>
+        </nav>
 
         {/* Bottom Panel Actions (Simulated Role profile & Logout) */}
         <div className="p-4 border-t border-slate-100 flex flex-col gap-2.5 flex-shrink-0">
@@ -119,7 +144,7 @@ export default function CoreLayout({ children }: CoreLayoutProps) {
           {/* Navigation Tabs based on role - replaced with a neutral title */}
           <div className="flex items-center gap-6 h-full text-xs font-bold text-slate-800">
             <span className="text-sm font-extrabold tracking-tight text-slate-700 select-none">
-              Roadmaps
+              CMS Admin Hub
             </span>
           </div>
 

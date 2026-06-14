@@ -231,11 +231,11 @@ describe('Progress Module (e2e)', () => {
       expect(res.body.correctAnswers).toBe(2);
       expect(res.body.totalQuestions).toBe(2);
       expect(res.body.percentage).toBe(100);
-      expect(res.body.xpEarned).toBe(200); // 100 + (2/2)*100 = 200 XP
+      expect(res.body.xpEarned).toBe(100); // (100 * 0.5) + (100 * 0.5 * 2/2) = 50 + 50 = 100 XP
 
       // Check User's total XP inside database
       const user = await prisma.user.findUnique({ where: { id: learnerId } });
-      expect(user!.xp).toBe(200);
+      expect(user!.xp).toBe(100);
 
       // Verify that progress status is now COMPLETED for Module A
       const progressA = await prisma.userModuleProgress.findUnique({
@@ -243,7 +243,7 @@ describe('Progress Module (e2e)', () => {
       });
       expect(progressA!.status).toBe('COMPLETED');
       expect(progressA!.score).toBe(2);
-      expect(progressA!.xpEarned).toBe(200);
+      expect(progressA!.xpEarned).toBe(100);
 
       // Verify that Module B is now UNLOCKED
       const progressB = await prisma.userModuleProgress.findUnique({
@@ -269,9 +269,9 @@ describe('Progress Module (e2e)', () => {
       expect(res.body.totalQuestions).toBe(2);
       expect(res.body.xpEarned).toBe(0); // 0 XP awarded due to anti-farming
 
-      // Verify user's total XP is unchanged (still 200)
+      // Verify user's total XP is unchanged (still 100)
       const user = await prisma.user.findUnique({ where: { id: learnerId } });
-      expect(user!.xp).toBe(200);
+      expect(user!.xp).toBe(100);
 
       // Verify score in progress is still 2 (highest score kept)
       const progressA = await prisma.userModuleProgress.findUnique({
@@ -314,7 +314,7 @@ describe('Progress Module (e2e)', () => {
         .set('Authorization', `Bearer ${learnerToken}`)
         .expect(200);
 
-      expect(res.body.currentXP).toBe(200);
+      expect(res.body.currentXP).toBe(100);
     });
   });
 

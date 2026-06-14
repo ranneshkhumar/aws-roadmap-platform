@@ -7,7 +7,7 @@ export default function CorePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/core/roadmaps');
+    router.replace('/core/topics');
   }, [router]);
 
   return (
@@ -15,7 +15,7 @@ export default function CorePage() {
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
         <span className="text-xs text-slate-400 font-bold tracking-wider uppercase animate-pulse">
-          Redirecting to Roadmap Builder...
+          Redirecting to Topics Directory...
         </span>
       </div>
     </div>

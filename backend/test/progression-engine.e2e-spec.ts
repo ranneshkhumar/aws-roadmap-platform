@@ -328,12 +328,12 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         .set('Authorization', `Bearer ${learnerToken}`)
         .expect(200);
 
-      // M1: 100 + (1/1)*100 = 200
-      // M2: 100 + (1/1)*100 = 200
-      // M3: 150 + (1/1)*150 = 300
-      // M4: 200 + (1/1)*200 = 400
-      // Total: 1100
-      expect(res.body.currentXP).toBe(1100);
+      // M1: (100 * 0.5) + (100 * 0.5 * 1/1) = 50 + 50 = 100
+      // M2: (100 * 0.5) + (100 * 0.5 * 1/1) = 50 + 50 = 100
+      // M3: (150 * 0.5) + (150 * 0.5 * 1/1) = 75 + 75 = 150
+      // M4: (200 * 0.5) + (200 * 0.5 * 1/1) = 100 + 100 = 200
+      // Total: 550
+      expect(res.body.currentXP).toBe(550);
     });
   });
 
@@ -346,7 +346,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         .get('/progress/me')
         .set('Authorization', `Bearer ${learnerToken}`)
         .expect(200);
-      expect(xpRes.body.currentXP).toBe(1100); // unchanged
+      expect(xpRes.body.currentXP).toBe(550); // unchanged
     }, 30000);
   });
 

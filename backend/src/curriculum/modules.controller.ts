@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ModulesService } from './modules.service';
@@ -22,7 +23,10 @@ export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
   @Get()
-  async findAll() {
+  async findAll(@Query('topicId') topicId?: string) {
+    if (topicId) {
+      return this.modulesService.findByTopicId(topicId);
+    }
     return this.modulesService.findAll();
   }
 

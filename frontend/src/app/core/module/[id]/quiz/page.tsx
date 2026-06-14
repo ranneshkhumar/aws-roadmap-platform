@@ -23,7 +23,7 @@ export default function QuizEditorPage() {
   const router = useRouter();
   const moduleId = params.id as string;
 
-  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string } | null>(null);
+  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; topicId: string | null } | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -107,6 +107,7 @@ export default function QuizEditorPage() {
           name: res.name,
           level: tierToLevel(res.tier),
           dbId: res.id,
+          topicId: res.topicId ?? null,
         });
 
         // Map backend questions to frontend questions structure using the adapter in api.ts
@@ -343,7 +344,7 @@ export default function QuizEditorPage() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
-            href="/core/roadmaps"
+            href={module?.topicId ? `/core/topics/${module.topicId}/roadmap` : '/core/topics'}
             className="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 transition-colors shadow-sm"
           >
             <Icons.ArrowLeft className="w-4 h-4" />

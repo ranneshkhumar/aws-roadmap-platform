@@ -167,13 +167,15 @@ export class ProgressService {
       const isAlreadyCompleted =
         existingProgress && existingProgress.status === 'COMPLETED';
 
-      // XP calculation: moduleXP + (correctAnswers / totalQuestions) * moduleXP
+      // XP calculation: 50% base + 50% performance bonus
+      // base = moduleXP * 0.5 (awarded for completion)
+      // bonus = moduleXP * 0.5 * (correctAnswers / totalQuestions)
       // If already completed, award 0 XP (anti-farming rule)
       const xpEarned = isAlreadyCompleted
         ? 0
         : Math.round(
-            module.xpPoints +
-              (correctAnswersCount / totalQuestionsCount) * module.xpPoints,
+            module.xpPoints * 0.5 +
+              module.xpPoints * 0.5 * (correctAnswersCount / totalQuestionsCount),
           );
 
       // 1. Store QuizAttempt
@@ -459,5 +461,102 @@ export class ProgressService {
         explanation: a.question.explanation,
       })),
     };
+  }
+
+  /**
+   * Retroactively unlock a new module for learners who have progressed
+   * past the level where the module was inserted.
+   *
+   * Eligibility: learner has
+   *   - completed the target level, OR
+   *   - unlocked/completed a module in a later level (same topic), OR
+   *   - unlocked/completed a module in a later topic
+   *
+   * @param tx Optional transaction client for read-after-write consistency
+   */
+  async retroactiveUnlockForNewModule(
+    newModuleId: string,
+    topicId: string | null,
+    level: ModuleLevel | null,
+    tx?: any,
+  ): Promise<number> {
+    if (!topicId || !level) return 0;
+
+    const db = tx || this.prisma;
+
+    // 1. Find all module IDs in the target level
+    const levelModules = await db.module.findMany({
+      where: { topicId, level },
+      select: { id: true },
+    });
+    const levelModuleIds = levelModules.map((m) => m.id);
+
+    // 2. Find all module IDs in later levels of the same topic
+    const laterLevelValues = LEVEL_VALUES.filter(
+      (lv) => LEVEL_ORDER[lv] > LEVEL_ORDER[level],
+    );
+    const laterLevelModules = await db.module.findMany({
+      where: { topicId, level: { in: laterLevelValues } },
+      select: { id: true },
+    });
+    const laterLevelModuleIds = laterLevelModules.map((m) => m.id);
+
+    // 3. Find all module IDs in later topics
+    const currentTopic = await db.topic.findUnique({
+      where: { id: topicId },
+      select: { orderIndex: true },
+    });
+    let laterTopicModuleIds: string[] = [];
+    if (currentTopic) {
+      const laterTopics = await db.topic.findMany({
+        where: { orderIndex: { gt: currentTopic.orderIndex } },
+        select: { id: true },
+      });
+      const laterTopicIds = laterTopics.map((t) => t.id);
+      if (laterTopicIds.length > 0) {
+        const laterTopicModules = await db.module.findMany({
+          where: { topicId: { in: laterTopicIds } },
+          select: { id: true },
+        });
+        laterTopicModuleIds = laterTopicModules.map((m) => m.id);
+      }
+    }
+
+    // 4. Combine all eligible module IDs
+    const eligibleModuleIds = [
+      ...levelModuleIds,
+      ...laterLevelModuleIds,
+      ...laterTopicModuleIds,
+    ];
+
+    if (eligibleModuleIds.length === 0) return 0;
+
+    // 5. Find learners who have COMPLETED or UNLOCKED any eligible module
+    const eligibleLearners = await db.userModuleProgress.findMany({
+      where: {
+        moduleId: { in: eligibleModuleIds },
+        status: { in: ['COMPLETED', 'UNLOCKED'] },
+      },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+
+    if (eligibleLearners.length === 0) return 0;
+
+    // 6. Create UNLOCKED records for the new module (skip duplicates)
+    const result = await db.userModuleProgress.createMany({
+      data: eligibleLearners.map((p) => ({
+        userId: p.userId,
+        moduleId: newModuleId,
+        status: 'UNLOCKED' as const,
+      })),
+      skipDuplicates: true,
+    });
+
+    this.logger.log(
+      `Retroactive unlock: ${result.count} learners unlocked for new module ${newModuleId}`,
+    );
+
+    return result.count;
   }
 }

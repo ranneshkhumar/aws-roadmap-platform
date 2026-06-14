@@ -369,7 +369,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
                   <>
                     <span className="text-slate-200">|</span>
                     <Link
-                      href="/core/roadmaps"
+                      href="/core/topics"
                       className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
                     >
                       <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard

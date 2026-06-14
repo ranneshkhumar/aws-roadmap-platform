@@ -60,6 +60,8 @@ export interface ModuleData {
   estimatedMinutes: number;
   orderIndex: number;
   slug: string;
+  topicId: string | null;
+  level: string;
 }
 
 export interface ModuleDetail extends ModuleData {
@@ -74,6 +76,8 @@ export interface CreateModuleDto {
   xpPoints: number;
   estimatedMinutes: number;
   orderIndex?: number;
+  topicId?: string;
+  level?: string;
 }
 
 export interface UpdateModuleDto {
@@ -83,6 +87,8 @@ export interface UpdateModuleDto {
   xpPoints?: number;
   estimatedMinutes?: number;
   orderIndex?: number;
+  topicId?: string;
+  level?: string;
 }
 
 export interface UserProgress {
@@ -109,6 +115,8 @@ export interface QuizAttemptResult {
   totalQuestions: number;
   percentage: number;
   xpEarned: number;
+  topicCompleted: boolean;
+  nextTopicUnlocked: boolean;
 }
 
 // ============================================================================
@@ -172,8 +180,9 @@ export const mapFrontendQuestionToBackend = (q: any): QuizQuestion => {
 // ============================================================================
 
 export const modulesService = {
-  getModules: async (): Promise<ModuleData[]> => {
-    const res = await apiClient.get<ModuleData[]>('/modules');
+  getModules: async (topicId?: string): Promise<ModuleData[]> => {
+    const params = topicId ? { topicId } : {};
+    const res = await apiClient.get<ModuleData[]>('/modules', { params });
     return res.data;
   },
 
@@ -303,6 +312,7 @@ export interface LearningTopicDetail {
 }
 
 export interface TopicSummary {
+  id: string;
   slug: string;
   name: string;
   description: string;
@@ -326,6 +336,61 @@ export const learningService = {
 
   getContinueModule: async (): Promise<{ module: LearningModuleSummary & { topicSlug: string; topicName: string } | null }> => {
     const res = await apiClient.get<{ module: (LearningModuleSummary & { topicSlug: string; topicName: string }) | null }>('/learning/continue');
+    return res.data;
+  },
+};
+
+// ============================================================================
+// 5. CMS TOPICS API
+// ============================================================================
+
+export interface TopicData {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  orderIndex: number;
+  modules: ModuleData[];
+}
+
+export interface CreateTopicDto {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateTopicDto {
+  name?: string;
+  description?: string;
+}
+
+export const topicsService = {
+  getTopics: async (): Promise<TopicData[]> => {
+    const res = await apiClient.get<TopicData[]>('/topics');
+    return res.data;
+  },
+
+  getTopic: async (id: string): Promise<TopicData> => {
+    const res = await apiClient.get<TopicData>(`/topics/${id}`);
+    return res.data;
+  },
+
+  createTopic: async (dto: CreateTopicDto): Promise<TopicData> => {
+    const res = await apiClient.post<TopicData>('/topics', dto);
+    return res.data;
+  },
+
+  updateTopic: async (id: string, dto: UpdateTopicDto): Promise<TopicData> => {
+    const res = await apiClient.patch<TopicData>(`/topics/${id}`, dto);
+    return res.data;
+  },
+
+  deleteTopic: async (id: string): Promise<{ success: boolean }> => {
+    const res = await apiClient.delete<{ success: boolean }>(`/topics/${id}`);
+    return res.data;
+  },
+
+  reorderTopics: async (ids: string[]): Promise<{ success: boolean }> => {
+    const res = await apiClient.post<{ success: boolean }>('/topics/reorder', { ids });
     return res.data;
   },
 };

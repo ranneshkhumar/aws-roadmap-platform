@@ -27,9 +27,10 @@ export interface QuizReviewData {
 interface QuizReviewProps {
   review: QuizReviewData | undefined;
   onReturn: () => void;
+  returnLabel?: string;
 }
 
-export const QuizReview: React.FC<QuizReviewProps> = ({ review, onReturn }) => {
+export const QuizReview: React.FC<QuizReviewProps> = ({ review, onReturn, returnLabel = 'Return to Journey Map' }) => {
   if (!review) return null;
 
   return (
@@ -130,7 +131,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({ review, onReturn }) => {
           className="w-full max-w-xs bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl text-xs tracking-wider transition-all active:scale-[0.98] shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 font-heading"
         >
           <Icons.Map className="w-4 h-4 text-emerald-450 fill-current" />
-          Return to Journey Map
+          {returnLabel}
         </button>
       </div>
     </motion.div>

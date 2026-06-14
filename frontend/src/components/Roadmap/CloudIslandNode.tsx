@@ -15,6 +15,8 @@ interface CloudIslandNodeProps {
   y: number; // pixels
   onClick: () => void;
   index: number;
+  level?: string;
+  levelIndex?: number;
 }
 
 export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
@@ -26,20 +28,15 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
   x,
   y,
   onClick,
-  index
+  index,
+  level,
+  levelIndex
 }) => {
   // Stagger float delay for natural look
   const floatDelay = (index * 0.35) % 2;
 
-  // Map circle indices to two-digit strings
-  let circleNumber = 1;
-  if (index < 6) {
-    circleNumber = index + 1; // Beginner
-  } else if (index < 12) {
-    circleNumber = index - 6 + 1; // Intermediate
-  } else {
-    circleNumber = index - 12 + 1; // Advanced
-  }
+  // Level-relative display number: use levelIndex if provided, else fall back to index
+  const circleNumber = (levelIndex ?? index) + 1;
   const progressNumber = String(circleNumber).padStart(2, '0');
 
   return (

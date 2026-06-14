@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import { modulesService, slidesService, questionsService, progressService, mapLayoutTypeToFrontend, mapIndexToLetter, mapBackendQuestionToFrontend } from '@/services/api';
+import { modulesService, slidesService, questionsService, progressService, learningService, mapLayoutTypeToFrontend, mapIndexToLetter, mapBackendQuestionToFrontend } from '@/services/api';
 import { ApiError } from '@/services/apiClient';
 import { authService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
@@ -67,7 +67,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const { moduleId } = use(params);
   
   // State controllers
-  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; points: number; iconName: string } | null>(null);
+  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; points: number; iconName: string; topicSlug: string } | null>(null);
   const [slides, setSlides] = useState<any[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   
@@ -84,6 +84,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const [shake, setShake] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quizReview, setQuizReview] = useState<QuizReviewData | undefined>(undefined);
+  const [quizResult, setQuizResult] = useState<{ topicCompleted: boolean; nextTopicUnlocked: boolean } | null>(null);
   
   // Confetti overlay state
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -119,6 +120,16 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         }
 
         const dbId = activeModule.id;
+
+        // Resolve topicSlug for post-quiz redirect
+        let topicSlug = '';
+        if (activeModule.topicId) {
+          const topics = await learningService.getTopicList();
+          const matchedTopic = topics.find((t) => t.id === activeModule.topicId);
+          if (matchedTopic) {
+            topicSlug = matchedTopic.slug;
+          }
+        }
 
         // 2. Fetch module progress for access control
         const moduleProgress = await progressService.getModuleProgress(dbId);
@@ -167,6 +178,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
           points: activeModule.xpPoints,
           dbId: activeModule.id,
           iconName: getIconForSlug(activeModule.slug),
+          topicSlug,
         });
 
         // Map backend slides content
@@ -388,7 +400,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         selectedAnswer: mapIndexToLetter(userAnswers[idx] ?? 0),
       }));
 
-      await progressService.submitQuizAttempt(module.dbId, {
+      const result = await progressService.submitQuizAttempt(module.dbId, {
         answers: answersPayload,
       });
 
@@ -396,6 +408,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
       const reviewData = await progressService.getQuizReview(module.dbId);
       setQuizReview(reviewData);
+      setQuizResult({ topicCompleted: result.topicCompleted, nextTopicUnlocked: result.nextTopicUnlocked });
       setStep('review');
     } catch (err: any) {
       console.error("Failed to submit quiz attempt:", err);
@@ -506,7 +519,13 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                           Previous Page
                         </button>
                         <button
-                          onClick={() => router.push('/roadmap')}
+                          onClick={() => {
+                            if (module?.topicSlug) {
+                              router.push(`/learn/${module.topicSlug}`);
+                            } else {
+                              router.push('/learn');
+                            }
+                          }}
                           className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-md transition-all active:scale-[0.98]"
                         >
                           Return to Journey Map
@@ -612,7 +631,14 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
             {step === 'review' && (
               <QuizReview
                 review={quizReview}
-                onReturn={() => router.push('/roadmap')}
+                onReturn={() => {
+                  if (quizResult?.topicCompleted || !module?.topicSlug) {
+                    router.push('/learn');
+                  } else {
+                    router.push(`/learn/${module.topicSlug}`);
+                  }
+                }}
+                returnLabel={quizResult?.topicCompleted ? 'Choose Next Topic' : 'Continue Learning'}
               />
             )}
 

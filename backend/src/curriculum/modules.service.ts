@@ -1,13 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Module } from '../../generated/prisma/client.js';
+import { Module, ModuleLevel } from '../../generated/prisma/client.js';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ReorderModulesDto } from './dto/reorder-modules.dto';
+import { ProgressService } from '../progress/progress.service';
 
 @Injectable()
 export class ModulesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private progressService: ProgressService,
+  ) {}
+
+  /**
+   * Finds the insertion point at the end of a level within a topic,
+   * shifts all later modules up by 1, and returns the orderIndex to assign.
+   */
+  private async insertAtEndOfLevel(
+    topicId: string | null,
+    level: ModuleLevel | null,
+  ): Promise<number> {
+    const lastInLevel = await this.prisma.module.findFirst({
+      where: { topicId: topicId ?? null, level: level ?? null },
+      orderBy: { orderIndex: 'desc' },
+    });
+    const insertAt = lastInLevel ? lastInLevel.orderIndex + 1 : 0;
+
+    await this.prisma.module.updateMany({
+      where: {
+        topicId: topicId ?? null,
+        orderIndex: { gte: insertAt },
+      },
+      data: { orderIndex: { increment: 1 } },
+    });
+
+    return insertAt;
+  }
 
   async findAll(): Promise<Module[]> {
     return this.prisma.module.findMany({
@@ -62,27 +91,47 @@ export class ModulesService {
     });
   }
 
+  async findByTopicId(topicId: string): Promise<Module[]> {
+    return this.prisma.module.findMany({
+      where: { topicId },
+      orderBy: { orderIndex: 'asc' },
+    });
+  }
+
   async create(dto: CreateModuleDto): Promise<Module> {
     const slug = await this.generateUniqueSlug(dto.name);
 
-    let orderIndex = dto.orderIndex;
-    if (orderIndex === undefined || orderIndex === null) {
-      const maxModule = await this.prisma.module.findFirst({
-        orderBy: { orderIndex: 'desc' },
-      });
-      orderIndex = maxModule ? maxModule.orderIndex + 1 : 0;
-    }
+    return this.prisma.$transaction(async (tx) => {
+      let orderIndex = dto.orderIndex;
+      if (orderIndex === undefined || orderIndex === null) {
+        orderIndex = await this.insertAtEndOfLevel(
+          dto.topicId ?? null,
+          (dto.level as ModuleLevel) ?? null,
+        );
+      }
 
-    return this.prisma.module.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        tier: dto.tier,
-        xpPoints: dto.xpPoints,
-        estimatedMinutes: dto.estimatedMinutes,
-        orderIndex,
-        slug,
-      },
+      const module = await tx.module.create({
+        data: {
+          name: dto.name,
+          description: dto.description,
+          tier: dto.tier,
+          xpPoints: dto.xpPoints,
+          estimatedMinutes: dto.estimatedMinutes,
+          orderIndex,
+          slug,
+          topicId: dto.topicId ?? null,
+          level: dto.level ?? null,
+        },
+      });
+
+      await this.progressService.retroactiveUnlockForNewModule(
+        module.id,
+        dto.topicId ?? null,
+        (dto.level as ModuleLevel) ?? null,
+        tx,
+      );
+
+      return module;
     });
   }
 
@@ -102,6 +151,8 @@ export class ModulesService {
       xpPoints: dto.xpPoints,
       estimatedMinutes: dto.estimatedMinutes,
       orderIndex: dto.orderIndex,
+      topicId: dto.topicId,
+      level: dto.level,
     };
 
     if (dto.name && dto.name !== existing.name) {
@@ -151,50 +202,63 @@ export class ModulesService {
     const newName = `${original.name} Copy`;
     const newSlug = await this.generateUniqueSlug(newName);
 
-    const maxModule = await this.prisma.module.findFirst({
-      orderBy: { orderIndex: 'desc' },
-    });
-    const nextOrderIndex = maxModule ? maxModule.orderIndex + 1 : 0;
+    return this.prisma.$transaction(async (tx) => {
+      const orderIndex = await this.insertAtEndOfLevel(
+        original.topicId,
+        original.level,
+      );
 
-    return this.prisma.module.create({
-      data: {
-        name: newName,
-        description: original.description,
-        tier: original.tier,
-        xpPoints: original.xpPoints,
-        estimatedMinutes: original.estimatedMinutes,
-        orderIndex: nextOrderIndex,
-        slug: newSlug,
-        slides: {
-          create: original.slides.map((slide) => ({
-            title: slide.title,
-            layoutType: slide.layoutType,
-            imageUrl: slide.imageUrl,
-            bullets: slide.bullets,
-            orderIndex: slide.orderIndex,
-          })),
+      const module = await tx.module.create({
+        data: {
+          name: newName,
+          description: original.description,
+          tier: original.tier,
+          xpPoints: original.xpPoints,
+          estimatedMinutes: original.estimatedMinutes,
+          orderIndex,
+          slug: newSlug,
+          topicId: original.topicId,
+          level: original.level,
+          slides: {
+            create: original.slides.map((slide) => ({
+              title: slide.title,
+              layoutType: slide.layoutType,
+              imageUrl: slide.imageUrl,
+              bullets: slide.bullets,
+              orderIndex: slide.orderIndex,
+            })),
+          },
+          questions: {
+            create: original.questions.map((question) => ({
+              question: question.question,
+              optionA: question.optionA,
+              optionB: question.optionB,
+              optionC: question.optionC,
+              optionD: question.optionD,
+              correctAnswer: question.correctAnswer,
+              explanation: question.explanation,
+              orderIndex: question.orderIndex,
+            })),
+          },
         },
-        questions: {
-          create: original.questions.map((question) => ({
-            question: question.question,
-            optionA: question.optionA,
-            optionB: question.optionB,
-            optionC: question.optionC,
-            optionD: question.optionD,
-            correctAnswer: question.correctAnswer,
-            explanation: question.explanation,
-            orderIndex: question.orderIndex,
-          })),
+        include: {
+          slides: {
+            orderBy: { orderIndex: 'asc' },
+          },
+          questions: {
+            orderBy: { orderIndex: 'asc' },
+          },
         },
-      },
-      include: {
-        slides: {
-          orderBy: { orderIndex: 'asc' },
-        },
-        questions: {
-          orderBy: { orderIndex: 'asc' },
-        },
-      },
+      });
+
+      await this.progressService.retroactiveUnlockForNewModule(
+        module.id,
+        original.topicId,
+        original.level,
+        tx,
+      );
+
+      return module;
     });
   }
 

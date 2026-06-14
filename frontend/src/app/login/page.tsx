@@ -20,7 +20,7 @@ export default function LoginPage() {
     const session = getAuthSession();
     if (session.isAuthenticated && session.role) {
       if (session.role === 'core') {
-        router.replace('/core/roadmaps');
+        router.replace('/core/topics');
       } else {
         router.replace('/learn');
       }
@@ -39,7 +39,7 @@ export default function LoginPage() {
       
       const session = getAuthSession();
       if (session.role === 'core') {
-        router.push('/core/roadmaps');
+        router.push('/core/topics');
       } else {
         router.push('/learn');
       }

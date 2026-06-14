@@ -171,7 +171,7 @@ export default function LearnersDirectoryPage() {
         {/* Compact Module Navigation Bar */}
         <div className="flex items-center gap-6 h-full text-xs font-bold">
           <Link
-            href="/core/roadmaps"
+            href="/core/topics"
             className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700"
           >
             Roadmap Builder
