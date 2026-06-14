@@ -219,31 +219,6 @@ export default function ContentEditorPage() {
     }
   };
 
-  // Duplicate Slide
-  const handleDuplicateSlide = async (idx: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await flushSlides();
-      const slideToDuplicate = slides[idx];
-      const duplicatedSlide = {
-        ...slideToDuplicate,
-        title: `${slideToDuplicate.title} Copy`,
-        content: [...slideToDuplicate.content],
-      };
-      const updated = [...slides];
-      updated.splice(idx + 1, 0, duplicatedSlide);
-      
-      isDirtyRef.current = true;
-      setSlides(updated);
-      slidesRef.current = updated;
-      await flushSlides();
-      
-      setActiveSlideIndex(idx + 1);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Delete Slide
   const handleDeleteSlide = async (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -523,13 +498,6 @@ export default function ContentEditorPage() {
                         className="p-0.5 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 disabled:opacity-30 disabled:pointer-events-none"
                       >
                         <Icons.ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDuplicateSlide(idx, e)}
-                        className="p-0.5 rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-indigo-600"
-                        title="Duplicate"
-                      >
-                        <Icons.Copy className="w-3 h-3" />
                       </button>
                       <button
                         onClick={(e) => handleDeleteSlide(idx, e)}

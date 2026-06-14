@@ -10,7 +10,6 @@ export class ModuleSummaryDto {
   level: ModuleLevel;
   tier: string;
   xpPoints: number;
-  estimatedMinutes: number;
   orderIndex: number;
   status: ProgressStatus;
   score: number | null;

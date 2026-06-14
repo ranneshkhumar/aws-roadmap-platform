@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 interface GamificationSidebarProps {
   xp: number;
   level: number;
-  streak: number;
   completedCount: number;
   s3Completed: boolean;
 }
@@ -17,7 +16,6 @@ interface GamificationSidebarProps {
 export const GamificationSidebar: React.FC<GamificationSidebarProps> = ({
   xp,
   level,
-  streak,
   completedCount,
   s3Completed
 }) => {
@@ -91,40 +89,6 @@ export const GamificationSidebar: React.FC<GamificationSidebarProps> = ({
               transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
-        </div>
-      </div>
-
-      {/* 2. Completion Streak Card 🔥 */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 relative overflow-hidden backdrop-blur-md flex items-center justify-between">
-        <div className="space-y-1">
-          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">
-            Learning Streak
-          </span>
-          <h4 className="text-xl font-black text-white flex items-center gap-1.5">
-            {streak} Days Active
-          </h4>
-          <p className="text-xs text-slate-400">
-            Keep it up to multiply XP!
-          </p>
-        </div>
-
-        {/* Animated Flame Icon */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-125 pointer-events-none" />
-          <motion.div
-            animate={{
-              scale: [1, 1.12, 1],
-              rotate: [-2, 2, -2],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }}
-            className="w-14 h-14 bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 p-0.5 rounded-2xl shadow-lg flex items-center justify-center"
-          >
-            <Icons.Flame className="w-8 h-8 text-slate-950 fill-current" />
-          </motion.div>
         </div>
       </div>
 

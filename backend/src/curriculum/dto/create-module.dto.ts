@@ -17,10 +17,6 @@ export class CreateModuleDto {
   @Min(0)
   xpPoints: number;
 
-  @IsInt()
-  @Min(0)
-  estimatedMinutes: number;
-
   @IsOptional()
   @IsInt()
   @Min(0)

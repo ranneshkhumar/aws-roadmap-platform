@@ -57,7 +57,6 @@ describe('Progress Module (e2e)', () => {
         passwordHash,
         role: Role.ENTHUSIAST,
         xp: 0,
-        streak: 3,
       },
     });
     learnerId = user.id;
@@ -76,7 +75,7 @@ describe('Progress Module (e2e)', () => {
         description: 'VPC and Subnetting',
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 20,
+
         orderIndex: 0,
         slug: 'module-a',
       },
@@ -90,7 +89,7 @@ describe('Progress Module (e2e)', () => {
         description: 'EC2 Auto Scaling',
         tier: 'Associate',
         xpPoints: 150,
-        estimatedMinutes: 30,
+
         orderIndex: 1,
         slug: 'module-b',
       },
@@ -150,7 +149,6 @@ describe('Progress Module (e2e)', () => {
         .expect(200);
 
       expect(res.body.currentXP).toBe(0);
-      expect(res.body.streak).toBe(3);
     });
 
     it('should perform no DB writes on GET /progress/me', async () => {
@@ -347,7 +345,7 @@ describe('Progress Module (e2e)', () => {
           description: 'Should be locked',
           tier: 'Fundamentals',
           xpPoints: 50,
-          estimatedMinutes: 10,
+  
           orderIndex: 99,
           slug: 'locked-module-guard-test',
         },
@@ -398,7 +396,6 @@ describe('Progress Module (e2e)', () => {
           passwordHash,
           role: Role.ENTHUSIAST,
           xp: 0,
-          streak: 0,
         },
       });
       newUserId = user.id;

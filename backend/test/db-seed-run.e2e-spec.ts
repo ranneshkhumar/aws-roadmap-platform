@@ -107,7 +107,6 @@ describe('Database Seeder', () => {
           passwordHash: u.passwordHash,
           role: u.role,
           xp: 0,
-          streak: 0,
         },
       });
     }
@@ -134,12 +133,6 @@ describe('Database Seeder', () => {
         tier = 'Professional';
       }
 
-      // Clean estimated minutes to integer
-      const minutesMatch = m.estimatedTime.match(/\d+/);
-      const estimatedMinutes = minutesMatch
-        ? parseInt(minutesMatch[0], 10)
-        : 20;
-
       const dbModule = await prisma.module.upsert({
         where: { slug: m.id },
         update: {
@@ -147,7 +140,7 @@ describe('Database Seeder', () => {
           description: m.description,
           tier,
           xpPoints: m.points || 100,
-          estimatedMinutes,
+
           orderIndex: i,
         },
         create: {
@@ -155,7 +148,7 @@ describe('Database Seeder', () => {
           description: m.description,
           tier,
           xpPoints: m.points || 100,
-          estimatedMinutes,
+
           orderIndex: i,
           slug: m.id,
         },

@@ -87,7 +87,7 @@ describe('Slides Module (e2e)', () => {
         description: 'Module for testing slides api',
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 30,
+
         orderIndex: 0,
         slug: 'slides-test-module',
       },

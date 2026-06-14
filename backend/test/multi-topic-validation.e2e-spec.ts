@@ -48,7 +48,7 @@ describe('Curriculum V2 — Multi-Topic Validation', () => {
     // Create test user
     const hash = await bcrypt.hash('Password123!', 10);
     const user = await prisma.user.create({
-      data: { name: 'Multi-Topic Validator', email, passwordHash: hash, role: Role.ENTHUSIAST, xp: 0, streak: 0 },
+      data: { name: 'Multi-Topic Validator', email, passwordHash: hash, role: Role.ENTHUSIAST, xp: 0 },
     });
     userId = user.id;
     const login = await request(app.getHttpServer())

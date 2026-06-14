@@ -32,13 +32,11 @@ export interface RoadmapStore {
   modules: ModuleData[];
   moduleStates: { [key: string]: 'completed' | 'current' | 'locked' };
   xp: number;
-  streak: number;
   userResourceProgress: { [moduleId: string]: UserResourceProgress };
   quizReviews: { [moduleId: string]: QuizReviewData };
-  addModule: (name: string, description: string, level: 'Beginner' | 'Intermediate' | 'Advanced', estimatedTime: string, points: number) => void;
+  addModule: (name: string, description: string, level: 'Beginner' | 'Intermediate' | 'Advanced', points: number) => void;
   updateModule: (moduleId: string, updatedFields: Partial<ModuleData>) => void;
   deleteModule: (moduleId: string) => void;
-  duplicateModule: (moduleId: string) => void;
   reorderModule: (moduleId: string, direction: 'up' | 'down') => void;
   completeModule: (moduleId: string, points: number) => void;
   markAsRead: (moduleId: string) => void;
@@ -73,11 +71,10 @@ export const useRoadmapStore = create<RoadmapStore>()(
       modules: getInitialModules(),
       moduleStates: getInitialModuleStates(getInitialModules()),
       xp: 1250,
-      streak: 7,
       userResourceProgress: {},
       quizReviews: {},
       
-      addModule: (name, description, level, estimatedTime, points) =>
+      addModule: (name, description, level, points) =>
         set((state) => {
           // Generate unique slug ID from name
           const baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
@@ -95,7 +92,6 @@ export const useRoadmapStore = create<RoadmapStore>()(
             level,
             description,
             iconName: 'Boxes',
-            estimatedTime,
             learningPagesCount: 1,
             quizQuestionsCount: 1,
             tasks: [`Learn about ${name}.`],
@@ -148,37 +144,6 @@ export const useRoadmapStore = create<RoadmapStore>()(
           const nextModules = state.modules.filter((m) => m.id !== moduleId);
           const nextStates = { ...state.moduleStates };
           delete nextStates[moduleId];
-          return {
-            modules: nextModules,
-            moduleStates: nextStates,
-          };
-        }),
-
-      duplicateModule: (moduleId) =>
-        set((state) => {
-          const target = state.modules.find((m) => m.id === moduleId);
-          if (!target) return {};
-
-          const baseId = `${target.id}_copy`;
-          let finalId = baseId;
-          let counter = 1;
-          while (state.modules.some((m) => m.id === finalId)) {
-            finalId = `${baseId}_${counter}`;
-            counter++;
-          }
-
-          const duplicated: ModuleData = {
-            ...target,
-            id: finalId,
-            name: `${target.name} Copy`,
-            learningContent: target.learningContent.map((slide) => ({ ...slide })),
-            quizQuestions: target.quizQuestions ? target.quizQuestions.map((q) => ({ ...q })) : undefined,
-          };
-
-          const nextModules = [...state.modules, duplicated];
-          const nextStates = { ...state.moduleStates };
-          nextStates[finalId] = 'locked';
-
           return {
             modules: nextModules,
             moduleStates: nextStates,
@@ -288,7 +253,6 @@ export const useRoadmapStore = create<RoadmapStore>()(
           modules: getInitialModules(),
           moduleStates: getInitialModuleStates(getInitialModules()),
           xp: 1250,
-          streak: 7,
           userResourceProgress: {},
           quizReviews: {}
         }),

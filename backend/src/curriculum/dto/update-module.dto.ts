@@ -24,11 +24,6 @@ export class UpdateModuleDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  estimatedMinutes?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
   orderIndex?: number;
 
   @IsOptional()

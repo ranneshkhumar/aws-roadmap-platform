@@ -60,7 +60,6 @@ async function main() {
         passwordHash: u.passwordHash,
         role: u.role,
         xp: 0,
-        streak: 0,
       },
     });
   }
@@ -140,7 +139,6 @@ async function main() {
           description: m.description,
           tier: m.tier,
           xpPoints: m.xpPoints,
-          estimatedMinutes: m.estimatedMinutes,
           orderIndex: m.orderIndex,
           topicId: topic.id,
           level: m.level,
@@ -151,7 +149,6 @@ async function main() {
           description: m.description,
           tier: m.tier,
           xpPoints: m.xpPoints,
-          estimatedMinutes: m.estimatedMinutes,
           orderIndex: m.orderIndex,
           topicId: topic.id,
           level: m.level,

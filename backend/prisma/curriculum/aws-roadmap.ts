@@ -22,7 +22,6 @@ export interface CurriculumModule {
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   tier: 'Fundamentals' | 'Associate' | 'Professional';
   xpPoints: number;
-  estimatedMinutes: number;
   orderIndex: number;
   slides: CurriculumSlide[];
   quiz: CurriculumQuiz[];
@@ -63,7 +62,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'BEGINNER',
     tier: 'Fundamentals',
     xpPoints: 50,
-    estimatedMinutes: 15,
     orderIndex: 0,
     slides: [
       {
@@ -93,7 +91,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'BEGINNER',
     tier: 'Fundamentals',
     xpPoints: 50,
-    estimatedMinutes: 20,
     orderIndex: 1,
     slides: [
       {
@@ -125,7 +122,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'INTERMEDIATE',
     tier: 'Associate',
     xpPoints: 75,
-    estimatedMinutes: 15,
     orderIndex: 2,
     slides: [
       {
@@ -155,7 +151,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'INTERMEDIATE',
     tier: 'Associate',
     xpPoints: 75,
-    estimatedMinutes: 15,
     orderIndex: 3,
     slides: [
       {
@@ -185,7 +180,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'INTERMEDIATE',
     tier: 'Associate',
     xpPoints: 75,
-    estimatedMinutes: 15,
     orderIndex: 4,
     slides: [
       {
@@ -217,7 +211,6 @@ export const CURRICULUM_MODULES: CurriculumModule[] = [
     level: 'ADVANCED',
     tier: 'Professional',
     xpPoints: 100,
-    estimatedMinutes: 20,
     orderIndex: 5,
     slides: [
       {

@@ -105,7 +105,7 @@ describe('LearningService — Progression Engine', () => {
           description: 'd',
           level: ModuleLevel.BEGINNER,
           tier: 'Fundamentals',
-          estimatedMinutes: 10,
+
           topicId: 'topic-1',
           orderIndex: 0,
         },
@@ -116,7 +116,7 @@ describe('LearningService — Progression Engine', () => {
           description: 'd',
           level: ModuleLevel.BEGINNER,
           tier: 'Fundamentals',
-          estimatedMinutes: 10,
+
           topicId: 'topic-1',
           orderIndex: 1,
         },
@@ -148,7 +148,7 @@ describe('LearningService — Progression Engine', () => {
           description: 'd',
           level: ModuleLevel.BEGINNER,
           tier: 'Fundamentals',
-          estimatedMinutes: 10,
+
           topicId: 'topic-1',
           orderIndex: 0,
         },
@@ -159,7 +159,7 @@ describe('LearningService — Progression Engine', () => {
           description: 'd',
           level: ModuleLevel.BEGINNER,
           tier: 'Fundamentals',
-          estimatedMinutes: 10,
+
           topicId: 'topic-1',
           orderIndex: 1,
         },
@@ -190,7 +190,7 @@ describe('LearningService — Progression Engine', () => {
           description: 'd',
           level: ModuleLevel.BEGINNER,
           tier: 'Fundamentals',
-          estimatedMinutes: 10,
+
           topicId: 'topic-1',
           orderIndex: 0,
         },
@@ -222,7 +222,6 @@ describe('LearningService — Progression Engine', () => {
           level: ModuleLevel.BEGINNER,
           tier: 'F',
           xpPoints: 10,
-          estimatedMinutes: 5,
           orderIndex: 0,
         },
         {
@@ -233,7 +232,6 @@ describe('LearningService — Progression Engine', () => {
           level: ModuleLevel.INTERMEDIATE,
           tier: 'F',
           xpPoints: 10,
-          estimatedMinutes: 5,
           orderIndex: 1,
         },
       ]);
@@ -273,7 +271,6 @@ describe('LearningService — Progression Engine', () => {
           level: ModuleLevel.BEGINNER,
           tier: 'F',
           xpPoints: 10,
-          estimatedMinutes: 5,
           orderIndex: 0,
         },
       ]);

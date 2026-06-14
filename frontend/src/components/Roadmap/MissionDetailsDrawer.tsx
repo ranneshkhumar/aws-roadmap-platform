@@ -135,15 +135,6 @@ export const MissionDetailsDrawer: React.FC<MissionDetailsDrawerProps> = ({
                     </span>
                   </div>
 
-                  {/* Estimated duration row */}
-                  <div className="flex justify-between items-center py-3">
-                    <span className="text-xs text-slate-500">Estimated Time</span>
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1 font-outfit">
-                      <Icons.Clock className="w-3.5 h-3.5 text-amber-600" />
-                      {module.estimatedTime}
-                    </span>
-                  </div>
-
                   {/* Dedicated learning pages row */}
                   <div className="flex justify-between items-center py-3">
                     <span className="text-xs text-slate-500">Learning Pages</span>

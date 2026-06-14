@@ -9,7 +9,6 @@ interface RoadmapProgressUpdaterProps {
   className?: string;
   showReset?: boolean;
   xp?: number;
-  streak?: number;
   modules?: any[];
   moduleStates?: Record<string, 'completed' | 'current' | 'locked'>;
 }
@@ -18,13 +17,11 @@ export const RoadmapProgressUpdater: React.FC<RoadmapProgressUpdaterProps> = ({
   className,
   showReset = true,
   xp: propXp,
-  streak: propStreak,
   modules: propModules,
   moduleStates: propModuleStates
 }) => {
   const store = useRoadmapStore();
   const xp = propXp !== undefined ? propXp : store.xp;
-  const streak = propStreak !== undefined ? propStreak : store.streak;
   const modules = propModules !== undefined ? propModules : store.modules;
   const moduleStates = propModuleStates !== undefined ? propModuleStates : store.moduleStates;
   
@@ -51,12 +48,6 @@ export const RoadmapProgressUpdater: React.FC<RoadmapProgressUpdaterProps> = ({
           <h3 className="text-base font-extrabold text-slate-900 tracking-tight leading-tight mt-0.5">
             Explorer Stats
           </h3>
-        </div>
-        
-        {/* Streak element */}
-        <div className="flex items-center gap-1 text-orange-600 bg-orange-50 border border-orange-200/50 px-2.5 py-1 rounded-full text-xs font-bold font-heading">
-          <Icons.Flame className="w-4 h-4 fill-current animate-pulse" />
-          <span>{streak} Days</span>
         </div>
       </div>
 

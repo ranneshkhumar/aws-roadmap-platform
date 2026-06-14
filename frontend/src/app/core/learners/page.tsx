@@ -22,7 +22,6 @@ interface StudentRecord {
   email: string;
   avatar: string;
   xp: number;
-  streak: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   completedModules: { id: string; name: string; date: string }[];
   quizHistory: QuizAttempt[];
@@ -35,7 +34,6 @@ const INITIAL_STUDENTS: StudentRecord[] = [
     email: 's.connor@university.edu',
     avatar: 'SC',
     xp: 2450,
-    streak: 15,
     level: 'Beginner',
     completedModules: [
       { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-01' },
@@ -56,7 +54,6 @@ const INITIAL_STUDENTS: StudentRecord[] = [
     email: 'm.wright@cloudclub.org',
     avatar: 'MW',
     xp: 1800,
-    streak: 8,
     level: 'Intermediate',
     completedModules: [
       { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-02' },
@@ -75,7 +72,6 @@ const INITIAL_STUDENTS: StudentRecord[] = [
     email: 'j.connor@cyberdyne.io',
     avatar: 'JC',
     xp: 2900,
-    streak: 22,
     level: 'Advanced',
     completedModules: [
       { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-05-28' },
@@ -100,7 +96,6 @@ const INITIAL_STUDENTS: StudentRecord[] = [
     email: 'k.reese@resistance.net',
     avatar: 'KR',
     xp: 950,
-    streak: 4,
     level: 'Beginner',
     completedModules: [
       { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-06' },
@@ -117,7 +112,6 @@ const INITIAL_STUDENTS: StudentRecord[] = [
     email: 'silberman@hospital.org',
     avatar: 'PS',
     xp: 450,
-    streak: 0,
     level: 'Beginner',
     completedModules: [
       { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-08' }
@@ -309,7 +303,6 @@ export default function LearnersDirectoryPage() {
               <tr className="border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-450 bg-slate-50/50">
                 <th className="py-4 px-6">Learner Account</th>
                 <th className="py-4 px-6 text-center">XP Reward</th>
-                <th className="py-4 px-6 text-center">Active Streak</th>
                 <th className="py-4 px-6">Completed Modules</th>
                 <th className="py-4 px-6 text-center">Curriculum Level</th>
                 <th className="py-4 px-6 text-right">Action</th>
@@ -341,14 +334,6 @@ export default function LearnersDirectoryPage() {
                   <td className="py-4 px-6 text-center">
                     <span className="text-amber-600 font-black">
                       {student.xp}
-                    </span>
-                  </td>
-
-                  {/* Streak */}
-                  <td className="py-4 px-6 text-center">
-                    <span className="flex items-center justify-center gap-1 text-rose-600 font-black">
-                      <Icons.Flame className="w-3.5 h-3.5 fill-current" />
-                      {student.streak}d
                     </span>
                   </td>
 
@@ -385,7 +370,7 @@ export default function LearnersDirectoryPage() {
 
               {filteredStudents.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400 text-xs italic">
+                  <td colSpan={5} className="text-center py-10 text-slate-400 text-xs italic">
                     No matching student accounts found.
                   </td>
                 </tr>
@@ -462,15 +447,6 @@ export default function LearnersDirectoryPage() {
                     </span>
                     <span className="text-base font-black text-amber-600 mt-1 block">
                       {selectedStudent.xp} XP
-                    </span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-heading block">
-                      Active Streak
-                    </span>
-                    <span className="text-base font-black text-rose-600 mt-1 block flex items-center gap-1">
-                      <Icons.Flame className="w-4 h-4 fill-current text-rose-500" />
-                      {selectedStudent.streak} Days
                     </span>
                   </div>
                 </div>

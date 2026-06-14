@@ -8,39 +8,39 @@ import { ModuleLevel } from '../../generated/prisma/client.js';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { ReorderTopicsDto } from './dto/reorder-topics.dto';
+import { ProgressService } from '../progress/progress.service';
 
 const MODULE_DEFAULTS: Record<
   ModuleLevel,
   {
     tier: string;
     xpPoints: number;
-    estimatedMinutes: number;
     levelOffset: number;
   }
 > = {
   [ModuleLevel.BEGINNER]: {
     tier: 'Fundamentals',
     xpPoints: 0,
-    estimatedMinutes: 0,
     levelOffset: 0,
   },
   [ModuleLevel.INTERMEDIATE]: {
     tier: 'Associate',
     xpPoints: 0,
-    estimatedMinutes: 0,
     levelOffset: 1,
   },
   [ModuleLevel.ADVANCED]: {
     tier: 'Professional',
     xpPoints: 0,
-    estimatedMinutes: 0,
     levelOffset: 2,
   },
 };
 
 @Injectable()
 export class TopicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private progressService: ProgressService,
+  ) {}
 
   async findAll() {
     return this.prisma.topic.findMany({
@@ -79,7 +79,7 @@ export class TopicsService {
     const topicOrderIndex = maxTopic ? maxTopic.orderIndex + 1 : 0;
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const topic = await tx.topic.create({
           data: {
             name: dto.name,
@@ -99,7 +99,6 @@ export class TopicsService {
                 description: '',
                 tier: defaults.tier,
                 xpPoints: defaults.xpPoints,
-                estimatedMinutes: defaults.estimatedMinutes,
                 orderIndex: topicOrderIndex * 3 + defaults.levelOffset,
                 topicId: topic.id,
                 level,
@@ -110,6 +109,16 @@ export class TopicsService {
 
         return { ...topic, modules };
       });
+
+      for (const mod of result.modules) {
+        await this.progressService.retroactiveUnlockForNewModule(
+          mod.id,
+          result.id,
+          mod.level,
+        );
+      }
+
+      return result;
     } catch (error) {
       if (error.code === 'P2002') {
         const target = error.meta?.target;

@@ -56,7 +56,6 @@ export class ProgressService {
 
     return {
       currentXP: user.xp,
-      streak: user.streak,
     };
   }
 

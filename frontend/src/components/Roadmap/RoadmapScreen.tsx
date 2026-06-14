@@ -109,7 +109,6 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   const [modules, setModules] = useState<any[]>([]);
   const [moduleStates, setModuleStates] = useState<Record<string, 'completed' | 'current' | 'locked'>>({});
   const [xp, setXp] = useState<number>(0);
-  const [streak, setStreak] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
 
@@ -136,7 +135,6 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
           level: m.level === 'BEGINNER' ? 'Beginner' : m.level === 'INTERMEDIATE' ? 'Intermediate' : 'Advanced',
           description: m.description,
           iconName: getIconForSlug(m.slug),
-          estimatedTime: `${m.estimatedMinutes} Minutes`,
           learningPagesCount: m.slideCount,
           quizQuestionsCount: m.questionCount,
           tasks: [],
@@ -165,7 +163,6 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
         setModules(mappedModules);
         setModuleStates(states);
         setXp(progress.currentXP);
-        setStreak(progress.streak);
       } catch (err) {
         console.error('Failed to load roadmap data:', err);
       } finally {
@@ -393,19 +390,6 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
 
           {/* Right Side: Reward & Resume */}
           <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-            {/* Streak Badge */}
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <Icons.Flame className="w-5 h-5 text-orange-500 fill-current animate-pulse" />
-              <div>
-                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                  STREAK
-                </span>
-                <span className="text-xs font-black text-slate-855 block leading-tight">
-                  {streak} Days
-                </span>
-              </div>
-            </div>
-
             {/* Total XP Badge */}
             <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
               <Icons.Trophy className="w-5 h-5 text-indigo-600 fill-current" />
@@ -793,7 +777,6 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
               <RoadmapProgressUpdater
                 showReset={false}
                 xp={xp}
-                streak={streak}
                 modules={modules}
                 moduleStates={moduleStates}
               />

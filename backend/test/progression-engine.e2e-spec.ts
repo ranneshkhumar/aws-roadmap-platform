@@ -59,7 +59,6 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         passwordHash,
         role: Role.ENTHUSIAST,
         xp: 0,
-        streak: 0,
       },
     });
     learnerId = user.id;
@@ -88,7 +87,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         description: 'First beginner module',
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 10,
+
         orderIndex: 0,
         slug: 'm1-beginner-e2e',
         topicId: topic1Id,
@@ -103,7 +102,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         description: 'Second beginner module',
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 10,
+
         orderIndex: 1,
         slug: 'm2-beginner-e2e',
         topicId: topic1Id,
@@ -118,7 +117,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         description: 'Intermediate module',
         tier: 'Associate',
         xpPoints: 150,
-        estimatedMinutes: 15,
+
         orderIndex: 2,
         slug: 'm3-intermediate-e2e',
         topicId: topic1Id,
@@ -133,7 +132,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         description: 'Advanced module',
         tier: 'Professional',
         xpPoints: 200,
-        estimatedMinutes: 20,
+
         orderIndex: 3,
         slug: 'm4-advanced-e2e',
         topicId: topic1Id,
@@ -149,7 +148,7 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
         description: 'First module of topic 2',
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 10,
+
         orderIndex: 0,
         slug: 'm5-topic2-beginner-e2e',
         topicId: topic2Id,

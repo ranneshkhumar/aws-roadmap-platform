@@ -55,7 +55,6 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
         passwordHash: coreHash,
         role: Role.CORE,
         xp: 0,
-        streak: 0,
       },
     });
 
@@ -73,7 +72,6 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
         passwordHash: learnerHash,
         role: Role.ENTHUSIAST,
         xp: 0,
-        streak: 0,
       },
     });
     learnerId = learner.id;
@@ -127,7 +125,7 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
         description: `${name} description`,
         tier: 'Fundamentals',
         xpPoints: 100,
-        estimatedMinutes: 10,
+
         topicId,
         level,
         ...(orderIndex !== undefined ? { orderIndex } : {}),
@@ -506,44 +504,6 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
       });
     });
 
-    it('duplicated module inserts at end of level and shifts later modules', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/modules?topicId=${topic1Id}`)
-        .expect(200);
-      const beginnerModules = res.body.filter(
-        (m: any) => m.level === 'BEGINNER',
-      );
-      const lastBeginner = beginnerModules[beginnerModules.length - 1];
 
-      const dupRes = await request(app.getHttpServer())
-        .post(`/modules/${lastBeginner.id}/duplicate`)
-        .set('Authorization', `Bearer ${coreToken}`)
-        .expect(201);
-
-      expect(dupRes.body.topicId).toBe(topic1Id);
-      expect(dupRes.body.level).toBe('BEGINNER');
-
-      const updatedRes = await request(app.getHttpServer())
-        .get(`/modules?topicId=${topic1Id}`)
-        .expect(200);
-
-      const updatedModules = updatedRes.body;
-      expect(updatedModules.length).toBe(5);
-
-      const dupModule = updatedModules.find(
-        (m: any) => m.id === dupRes.body.id,
-      );
-      expect(dupModule.orderIndex).toBe(2);
-
-      const intermediate = updatedModules.find(
-        (m: any) => m.level === 'INTERMEDIATE',
-      );
-      expect(intermediate.orderIndex).toBe(3);
-
-      const advanced = updatedModules.find(
-        (m: any) => m.level === 'ADVANCED',
-      );
-      expect(advanced.orderIndex).toBe(4);
-    }, 15000);
   });
 });

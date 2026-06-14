@@ -34,7 +34,6 @@ model User {
   role         Role   @default(ENTHUSIAST)
 
   xp     Int @default(0)
-  streak Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,7 +64,6 @@ model Module {
   tier String
 
   xpPoints         Int
-  estimatedMinutes Int
 
   orderIndex Int
 

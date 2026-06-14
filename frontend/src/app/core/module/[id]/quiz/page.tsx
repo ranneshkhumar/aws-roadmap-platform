@@ -221,30 +221,6 @@ export default function QuizEditorPage() {
     }
   };
 
-  // Duplicate Question
-  const handleDuplicateQuestion = async (idx: number) => {
-    try {
-      await flushQuestions();
-      const target = questions[idx];
-      const duplicated = {
-        ...target,
-        question: `${target.question} Copy`,
-        options: [...target.options]
-      };
-      const updated = [...questions];
-      updated.splice(idx + 1, 0, duplicated);
-
-      isDirtyRef.current = true;
-      setQuestions(updated);
-      questionsRef.current = updated;
-      await flushQuestions();
-
-      setActiveQuestionIdx(idx + 1);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Update Active Question Fields
   const updateActiveQuestion = (fields: Partial<(typeof questions)[0]>) => {
     if (!activeQuestion) return;
@@ -410,16 +386,6 @@ export default function QuizEditorPage() {
                     Q{idx + 1}
                   </span>
                   <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDuplicateQuestion(idx);
-                      }}
-                      className="p-0.5 rounded bg-white hover:bg-slate-100 border border-slate-205 text-slate-500"
-                      title="Duplicate"
-                    >
-                      <Icons.Copy className="w-3 h-3" />
-                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

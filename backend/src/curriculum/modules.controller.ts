@@ -59,13 +59,6 @@ export class ModulesController {
     return this.modulesService.reorder(reorderModulesDto);
   }
 
-  @Post(':id/duplicate')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.CORE)
-  async duplicate(@Param('id') id: string) {
-    return this.modulesService.duplicate(id);
-  }
-
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CORE)

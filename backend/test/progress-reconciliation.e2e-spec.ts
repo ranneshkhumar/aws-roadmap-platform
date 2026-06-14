@@ -47,7 +47,6 @@ describe('Progress Reconciliation (e2e)', () => {
         passwordHash,
         role: Role.ENTHUSIAST,
         xp: 0,
-        streak: 0,
       },
     });
     learnerId = user.id;
@@ -81,7 +80,7 @@ describe('Progress Reconciliation (e2e)', () => {
         description: `${name} description`,
         tier,
         xpPoints: 100,
-        estimatedMinutes: 10,
+
         orderIndex,
         slug: name.toLowerCase().replace(/\s+/g, '-'),
       },
@@ -182,7 +181,7 @@ describe('Progress Reconciliation (e2e)', () => {
           description: 'G description',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 10,
+  
           orderIndex: 2,
           slug: 'g',
         },
@@ -263,7 +262,7 @@ describe('Progress Reconciliation (e2e)', () => {
           description: 'G description',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 10,
+  
           orderIndex: 2,
           slug: 'g-prereq',
         },
@@ -397,7 +396,6 @@ describe('Progress Reconciliation (e2e)', () => {
           passwordHash,
           role: Role.ENTHUSIAST,
           xp: 0,
-          streak: 0,
         },
       });
       newLearnerId = user.id;
@@ -452,7 +450,7 @@ describe('Progress Reconciliation (e2e)', () => {
           description: 'X desc',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 10,
+  
           orderIndex: 1,
           slug: 'x',
         },
@@ -477,7 +475,7 @@ describe('Progress Reconciliation (e2e)', () => {
           description: 'Y desc',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 10,
+  
           orderIndex: 4,
           slug: 'y',
         },

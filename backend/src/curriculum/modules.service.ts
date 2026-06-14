@@ -101,7 +101,7 @@ export class ModulesService {
   async create(dto: CreateModuleDto): Promise<Module> {
     const slug = await this.generateUniqueSlug(dto.name);
 
-    return this.prisma.$transaction(async (tx) => {
+    const module = await this.prisma.$transaction(async (tx) => {
       let orderIndex = dto.orderIndex;
       if (orderIndex === undefined || orderIndex === null) {
         orderIndex = await this.insertAtEndOfLevel(
@@ -110,29 +110,27 @@ export class ModulesService {
         );
       }
 
-      const module = await tx.module.create({
+      return tx.module.create({
         data: {
           name: dto.name,
           description: dto.description,
           tier: dto.tier,
           xpPoints: dto.xpPoints,
-          estimatedMinutes: dto.estimatedMinutes,
           orderIndex,
           slug,
           topicId: dto.topicId ?? null,
           level: dto.level ?? null,
         },
       });
-
-      await this.progressService.retroactiveUnlockForNewModule(
-        module.id,
-        dto.topicId ?? null,
-        (dto.level as ModuleLevel) ?? null,
-        tx,
-      );
-
-      return module;
     });
+
+    await this.progressService.retroactiveUnlockForNewModule(
+      module.id,
+      dto.topicId ?? null,
+      (dto.level as ModuleLevel) ?? null,
+    );
+
+    return module;
   }
 
   async update(id: string, dto: UpdateModuleDto): Promise<Module> {
@@ -149,7 +147,6 @@ export class ModulesService {
       description: dto.description,
       tier: dto.tier,
       xpPoints: dto.xpPoints,
-      estimatedMinutes: dto.estimatedMinutes,
       orderIndex: dto.orderIndex,
       topicId: dto.topicId,
       level: dto.level,
@@ -184,82 +181,6 @@ export class ModulesService {
     });
 
     return { success: true };
-  }
-
-  async duplicate(id: string) {
-    const original = await this.prisma.module.findUnique({
-      where: { id },
-      include: {
-        slides: true,
-        questions: true,
-      },
-    });
-
-    if (!original) {
-      throw new NotFoundException(`Module with ID "${id}" not found`);
-    }
-
-    const newName = `${original.name} Copy`;
-    const newSlug = await this.generateUniqueSlug(newName);
-
-    return this.prisma.$transaction(async (tx) => {
-      const orderIndex = await this.insertAtEndOfLevel(
-        original.topicId,
-        original.level,
-      );
-
-      const module = await tx.module.create({
-        data: {
-          name: newName,
-          description: original.description,
-          tier: original.tier,
-          xpPoints: original.xpPoints,
-          estimatedMinutes: original.estimatedMinutes,
-          orderIndex,
-          slug: newSlug,
-          topicId: original.topicId,
-          level: original.level,
-          slides: {
-            create: original.slides.map((slide) => ({
-              title: slide.title,
-              layoutType: slide.layoutType,
-              imageUrl: slide.imageUrl,
-              bullets: slide.bullets,
-              orderIndex: slide.orderIndex,
-            })),
-          },
-          questions: {
-            create: original.questions.map((question) => ({
-              question: question.question,
-              optionA: question.optionA,
-              optionB: question.optionB,
-              optionC: question.optionC,
-              optionD: question.optionD,
-              correctAnswer: question.correctAnswer,
-              explanation: question.explanation,
-              orderIndex: question.orderIndex,
-            })),
-          },
-        },
-        include: {
-          slides: {
-            orderBy: { orderIndex: 'asc' },
-          },
-          questions: {
-            orderBy: { orderIndex: 'asc' },
-          },
-        },
-      });
-
-      await this.progressService.retroactiveUnlockForNewModule(
-        module.id,
-        original.topicId,
-        original.level,
-        tx,
-      );
-
-      return module;
-    });
   }
 
   async reorder(dto: ReorderModulesDto): Promise<{ success: boolean }> {

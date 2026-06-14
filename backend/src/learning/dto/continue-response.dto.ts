@@ -8,7 +8,6 @@ export class ContinueModuleDto {
   tier: string;
   topicSlug: string;
   topicName: string;
-  estimatedMinutes: number;
   slideCount: number;
   questionCount: number;
 }

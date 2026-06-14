@@ -36,7 +36,7 @@ describe('GET /learning/continue — Verification', () => {
     // User
     const hash = await bcrypt.hash('Password123!', 10);
     const user = await prisma.user.create({
-      data: { name: 'Continue Verify', email, passwordHash: hash, role: Role.ENTHUSIAST, xp: 0, streak: 0 },
+        data: { name: 'Continue Verify', email, passwordHash: hash, role: Role.ENTHUSIAST, xp: 0 },
     });
     userId = user.id;
     const login = await request(app.getHttpServer())
@@ -60,7 +60,7 @@ describe('GET /learning/continue — Verification', () => {
     const ids: string[] = [];
     for (const d of defs) {
       const m = await prisma.module.create({
-        data: { ...d, description: d.name, tier: 'Fundamentals', xpPoints: 100, estimatedMinutes: 10 },
+        data: { ...d, description: d.name, tier: 'Fundamentals', xpPoints: 100 },
       });
       ids.push(m.id);
       await prisma.quizQuestion.create({

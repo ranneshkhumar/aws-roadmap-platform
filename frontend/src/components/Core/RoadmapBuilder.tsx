@@ -98,7 +98,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
-  const [estimatedTime, setEstimatedTime] = useState('20 Minutes');
   const [points, setPoints] = useState(50);
 
   const centerRef = useRef<HTMLDivElement>(null);
@@ -107,12 +106,11 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editPoints, setEditPoints] = useState(50);
-  const [editEstimatedTime, setEditEstimatedTime] = useState('');
   const [editLevel, setEditLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
 
   const isDirtyRef = useRef(false);
-  const editStateRef = useRef({ name: '', description: '', points: 50, estimatedTime: '', level: 'Beginner' as const });
+  const editStateRef = useRef({ name: '', description: '', points: 50, level: 'Beginner' as const });
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentModuleDbIdRef = useRef<string | null>(null);
   const saveVersionRef = useRef(0);
@@ -134,7 +132,7 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       setLoading(true);
       const dbModules = await modulesService.getModules(topicId);
 
-      const requiredFields = ['id', 'slug', 'name', 'description', 'tier', 'xpPoints', 'estimatedMinutes', 'orderIndex'];
+      const requiredFields = ['id', 'slug', 'name', 'description', 'tier', 'xpPoints', 'orderIndex'];
       for (const mod of dbModules) {
         const missing = [];
         for (const field of requiredFields) {
@@ -154,7 +152,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         level: tierToLevel(m.tier),
         description: m.description,
         iconName: getIconForSlug(m.slug),
-        estimatedTime: `${m.estimatedMinutes} Minutes`,
         learningPagesCount: 4,
         quizQuestionsCount: 3,
         tasks: [],
@@ -204,12 +201,11 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
     setSaveStatus('saving');
 
     try {
-      const { name: currentName, description: currentDesc, points: currentPoints, estimatedTime: currentTime, level: currentLvl } = editStateRef.current;
+      const { name: currentName, description: currentDesc, points: currentPoints, level: currentLvl } = editStateRef.current;
       const dto = {
         name: currentName,
         description: currentDesc,
         xpPoints: currentPoints,
-        estimatedMinutes: parseInt(currentTime) || 20,
         tier: levelToTier(currentLvl),
       };
 
@@ -227,7 +223,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         level: tierToLevel(m.tier),
         description: m.description,
         iconName: getIconForSlug(m.slug),
-        estimatedTime: `${m.estimatedMinutes} Minutes`,
         learningPagesCount: 4,
         quizQuestionsCount: 3,
         tasks: [],
@@ -266,7 +261,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
     if (field === 'name') setEditName(value);
     if (field === 'description') setEditDescription(value);
     if (field === 'points') setEditPoints(value);
-    if (field === 'estimatedTime') setEditEstimatedTime(value);
     if (field === 'level') setEditLevel(value);
 
     editStateRef.current = { ...editStateRef.current, [field]: value };
@@ -289,13 +283,11 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       setEditName(selectedModule.name);
       setEditDescription(selectedModule.description);
       setEditPoints(selectedModule.points);
-      setEditEstimatedTime(selectedModule.estimatedTime);
       setEditLevel(selectedModule.level);
       editStateRef.current = {
         name: selectedModule.name,
         description: selectedModule.description,
         points: selectedModule.points,
-        estimatedTime: selectedModule.estimatedTime,
         level: selectedModule.level,
       };
       isDirtyRef.current = false;
@@ -324,12 +316,11 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
   useEffect(() => {
     return () => {
       if (isDirtyRef.current && currentModuleDbIdRef.current) {
-        const { name: currentName, description: currentDesc, points: currentPoints, estimatedTime: currentTime, level: currentLvl } = editStateRef.current;
+        const { name: currentName, description: currentDesc, points: currentPoints, level: currentLvl } = editStateRef.current;
         const dto = {
           name: currentName,
           description: currentDesc,
           xpPoints: currentPoints,
-          estimatedMinutes: parseInt(currentTime) || 20,
           tier: levelToTier(currentLvl),
         };
         modulesService.updateModule(currentModuleDbIdRef.current, dto).catch(console.error);
@@ -382,14 +373,12 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
     if (!name.trim()) return;
 
     try {
-      const minutes = parseInt(estimatedTime) || 20;
       const tier = levelToTier(level);
       const dto = {
         name,
         description,
         tier,
         xpPoints: points,
-        estimatedMinutes: minutes,
         topicId,
         level: level.toUpperCase(),
       };
@@ -398,7 +387,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       setName('');
       setDescription('');
       setLevel('Beginner');
-      setEstimatedTime('20 Minutes');
       setPoints(50);
       setIsCreateModalOpen(false);
       await loadModules();
@@ -422,19 +410,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         console.error('Failed to delete module:', err);
         handleApiError(err);
       }
-    }
-  };
-
-  const handleDuplicateModule = async () => {
-    if (!selectedModule) return;
-    try {
-      if (isDirtyRef.current) { await flushChanges(); }
-      const duplicated = await modulesService.duplicateModule(selectedModule.dbId);
-      await loadModules();
-      setSelectedModuleId(duplicated.slug);
-    } catch (err: any) {
-      console.error('Failed to duplicate module:', err);
-      handleApiError(err);
     }
   };
 
@@ -644,10 +619,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                     <label className="font-extrabold text-slate-550 text-[10px] uppercase tracking-wider">XP Points</label>
                     <input type="number" min={10} max={500} value={editPoints} onChange={(e) => handleFieldChange('points', Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-855 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="font-extrabold text-slate-555 text-[10px] uppercase tracking-wider">Estimated Time</label>
-                    <input type="text" value={editEstimatedTime} onChange={(e) => handleFieldChange('estimatedTime', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-855 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
-                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -684,9 +655,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                     </Link>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={handleDuplicateModule} className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-black text-slate-600 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs">
-                      <Icons.Copy className="w-3.5 h-3.5" /> Duplicate
-                    </button>
                     <button onClick={handleDeleteModule} className="bg-rose-50 hover:bg-rose-100 border border-rose-100 text-[11px] font-black text-rose-600 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs">
                       <Icons.Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
@@ -737,10 +705,6 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                       </select>
                       <Icons.ChevronDown className="absolute right-3.5 top-3 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-extrabold text-slate-550 block">Estimated Time</label>
-                    <input type="text" required placeholder="e.g. 20 Minutes" value={estimatedTime} onChange={(e) => setEstimatedTime(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
                   </div>
                 </div>
                 <div className="space-y-1">

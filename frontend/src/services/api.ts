@@ -57,7 +57,6 @@ export interface ModuleData {
   description: string;
   tier: string;
   xpPoints: number;
-  estimatedMinutes: number;
   orderIndex: number;
   slug: string;
   topicId: string | null;
@@ -74,7 +73,6 @@ export interface CreateModuleDto {
   description: string;
   tier: string;
   xpPoints: number;
-  estimatedMinutes: number;
   orderIndex?: number;
   topicId?: string;
   level?: string;
@@ -85,7 +83,6 @@ export interface UpdateModuleDto {
   description?: string;
   tier?: string;
   xpPoints?: number;
-  estimatedMinutes?: number;
   orderIndex?: number;
   topicId?: string;
   level?: string;
@@ -93,7 +90,6 @@ export interface UpdateModuleDto {
 
 export interface UserProgress {
   currentXP: number;
-  streak: number;
 }
 
 export interface ModuleProgress {
@@ -211,11 +207,6 @@ export const modulesService = {
     return res.data;
   },
 
-  duplicateModule: async (id: string): Promise<ModuleDetail> => {
-    const res = await apiClient.post<ModuleDetail>(`/modules/${id}/duplicate`);
-    return res.data;
-  },
-
   reorderModules: async (ids: string[]): Promise<{ success: boolean }> => {
     const res = await apiClient.post<{ success: boolean }>('/modules/reorder', { ids });
     return res.data;
@@ -288,7 +279,6 @@ export interface LearningModuleSummary {
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   tier: string;
   xpPoints: number;
-  estimatedMinutes: number;
   orderIndex: number;
   status: 'LOCKED' | 'UNLOCKED' | 'COMPLETED';
   score: number | null;

@@ -118,7 +118,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Desc',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 30,
+
         })
         .expect(401);
     });
@@ -132,7 +132,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Desc',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 30,
+
         })
         .expect(403);
     });
@@ -146,7 +146,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Desc',
           tier: 'Fundamentals',
           xpPoints: 100,
-          estimatedMinutes: 30,
+
         })
         .expect(403);
     });
@@ -165,7 +165,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Introduction to basic cloud concepts and services',
           tier: 'Fundamentals',
           xpPoints: 150,
-          estimatedMinutes: 45,
+
         })
         .expect(201);
 
@@ -188,7 +188,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Learn about roles, users and security policies',
           tier: 'Associate',
           xpPoints: 200,
-          estimatedMinutes: 60,
+
         })
         .expect(201);
 
@@ -205,7 +205,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Another module with same name',
           tier: 'Associate',
           xpPoints: 200,
-          estimatedMinutes: 60,
+
         })
         .expect(201);
 
@@ -300,7 +300,7 @@ describe('Curriculum Module (e2e)', () => {
           description: 'Desc',
           tier: 'Professional',
           xpPoints: 300,
-          estimatedMinutes: 90,
+
           orderIndex: 10,
           slug: 'original-module',
         },
@@ -335,27 +335,7 @@ describe('Curriculum Module (e2e)', () => {
       questionId = question.id;
     });
 
-    it('should duplicate metadata, slides and quiz questions with proper names and slug resolving', async () => {
-      const res = await request(app.getHttpServer())
-        .post(`/modules/${sourceModuleId}/duplicate`)
-        .set('Authorization', `Bearer ${coreToken}`)
-        .expect(201);
 
-      expect(res.body.name).toBe('Original Module Copy');
-      expect(res.body.slug).toBe('original-module-copy');
-      expect(res.body.id).not.toBe(sourceModuleId);
-      testModuleIds.push(res.body.id);
-
-      // Verify slides are copied
-      expect(res.body.slides).toHaveLength(1);
-      expect(res.body.slides[0].id).not.toBe(slideId);
-      expect(res.body.slides[0].title).toBe('Original Slide');
-
-      // Verify questions are copied
-      expect(res.body.questions).toHaveLength(1);
-      expect(res.body.questions[0].id).not.toBe(questionId);
-      expect(res.body.questions[0].question).toBe('True or False?');
-    });
   });
 
   describe('Reordering', () => {
