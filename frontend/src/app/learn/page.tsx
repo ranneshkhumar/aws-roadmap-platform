@@ -303,8 +303,8 @@ export default function LearnPage() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Column: Search + Topic Rail */}
             <div className="flex-[2] min-w-0">
-              <div className="flex justify-end items-center pointer-events-auto">
-                <div className="relative min-w-[240px] max-w-xs w-full">
+              <div className="flex items-center pointer-events-auto">
+                <div className="relative min-w-[240px] w-full">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"

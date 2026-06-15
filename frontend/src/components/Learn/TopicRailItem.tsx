@@ -138,6 +138,17 @@ export const TopicRailItem: React.FC<TopicRailItemProps> = ({ topic, status }) =
                 </div>
               )}
             </div>
+
+            {/* Module progress text */}
+            {isLocked ? (
+              <span className="text-[10px] text-slate-400 leading-none">
+                Unlock previous topic
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-500 leading-none">
+                {topic.completedModules} / {topic.totalModules} Modules
+              </span>
+            )}
           </div>
         </div>
 
