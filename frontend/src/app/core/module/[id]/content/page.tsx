@@ -9,6 +9,8 @@ import { authService } from '@/services/auth.service';
 import { LearningContentRenderer } from '@/components/Roadmap/LearningContentRenderer';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ConfirmDeleteModal from '@/components/Core/ConfirmDeleteModal';
+import { showToast } from '@/components/Core/Toast';
 
 const tierToLevel = (tier: string): 'Beginner' | 'Intermediate' | 'Advanced' => {
   const map: Record<string, 'Beginner' | 'Intermediate' | 'Advanced'> = {
@@ -54,6 +56,8 @@ export default function ContentEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [isDeleteSlideModalOpen, setIsDeleteSlideModalOpen] = useState(false);
+  const [pendingDeleteSlideIdx, setPendingDeleteSlideIdx] = useState<number | null>(null);
 
   // References for debounced save
   const isDirtyRef = useRef(false);
@@ -214,6 +218,7 @@ export default function ContentEditorPage() {
       await flushSlides();
       
       setActiveSlideIndex(updated.length - 1);
+      showToast('Slide created successfully');
     } catch (err) {
       console.error(err);
     }
@@ -223,16 +228,22 @@ export default function ContentEditorPage() {
   const handleDeleteSlide = async (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (slides.length <= 1) return;
+    setPendingDeleteSlideIdx(idx);
+    setIsDeleteSlideModalOpen(true);
+  };
+
+  const confirmDeleteSlide = async () => {
+    if (pendingDeleteSlideIdx === null) return;
     try {
       await flushSlides();
-      const updated = slides.filter((_, i) => i !== idx);
+      const updated = slides.filter((_, i) => i !== pendingDeleteSlideIdx);
       
       isDirtyRef.current = true;
       setSlides(updated);
       slidesRef.current = updated;
       await flushSlides();
       
-      setActiveSlideIndex(Math.max(0, idx - 1));
+      setActiveSlideIndex(Math.max(0, pendingDeleteSlideIdx - 1));
     } catch (err) {
       console.error(err);
     }
@@ -417,7 +428,7 @@ export default function ContentEditorPage() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
-            href={module?.topicId ? `/core/topics/${module.topicId}/roadmap` : '/core/topics'}
+            href={module?.topicId ? `/core/topics/${module.topicId}/roadmap?selected=${module.id}` : '/core/topics'}
             className="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 transition-colors shadow-sm"
           >
             <Icons.ArrowLeft className="w-4 h-4" />
@@ -740,6 +751,13 @@ export default function ContentEditorPage() {
 
       </div>
 
+      <ConfirmDeleteModal
+        isOpen={isDeleteSlideModalOpen}
+        title="Delete Slide"
+        entityName={pendingDeleteSlideIdx !== null ? `Slide ${pendingDeleteSlideIdx + 1}` : ''}
+        onClose={() => { setIsDeleteSlideModalOpen(false); setPendingDeleteSlideIdx(null); }}
+        onConfirm={confirmDeleteSlide}
+      />
     </div>
   );
 }

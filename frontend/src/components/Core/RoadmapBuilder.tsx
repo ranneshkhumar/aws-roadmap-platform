@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { modulesService } from '@/services/api';
 import { ApiError } from '@/services/apiClient';
 import { authService } from '@/services/auth.service';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
+import ConfirmDeleteModal from '@/components/Core/ConfirmDeleteModal';
+import { showToast } from '@/components/Core/Toast';
 
 import { SkyBackground } from '@/components/Roadmap/SkyBackground';
 import { RoadmapPath } from '@/components/Roadmap/RoadmapPath';
@@ -89,11 +91,14 @@ interface RoadmapBuilderProps {
 
 export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -158,6 +163,7 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         quiz: { question: '', options: [], answerIndex: 0, explanation: '' },
         learningContent: [],
         dbId: m.id,
+        orderIndex: m.orderIndex,
       }));
 
       mapped.sort((a, b) => {
@@ -169,12 +175,12 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       setModules(mapped);
       setError(null);
 
-      if (mapped.length > 0) {
-        if (!selectedModuleId || !mapped.some(m => m.id === selectedModuleId)) {
-          setSelectedModuleId(mapped[0].id);
-        }
-      } else {
-        setSelectedModuleId(null);
+      // Restore selection from URL ?selected= param, then existing state, then first module
+      const urlSelected = searchParams.get('selected');
+      if (urlSelected && mapped.some(m => m.id === urlSelected)) {
+        setSelectedModuleId(urlSelected);
+      } else if (!selectedModuleId || !mapped.some(m => m.id === selectedModuleId)) {
+        setSelectedModuleId(mapped.length > 0 ? mapped[0].id : null);
       }
     } catch (err: any) {
       console.error('Failed to load modules:', err);
@@ -253,6 +259,10 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       await flushChanges().catch(console.error);
     }
     setSelectedModuleId(moduleId);
+    // Persist selection in URL for restore on return from editors
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('selected', moduleId);
+    router.replace(`/core/topics/${topicId}/roadmap?${params.toString()}`, { scroll: false });
   };
 
   const handleFieldChange = (field: string, value: any) => {
@@ -354,6 +364,18 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
   const scaleX = centerSize.w / CANVAS_WIDTH;
   const fitScale = Math.min(scaleX, 0.95);
 
+  // Scroll to the selected module when it changes or when modules load
+  useEffect(() => {
+    if (!centerRef.current || !selectedModuleId || modules.length === 0) return;
+    const coord = coordinates[selectedModuleId];
+    if (!coord) return;
+    // Coordinates are in unscaled canvas space; container renders at fitScale
+    const scaledY = coord.y * fitScale;
+    const containerHeight = centerRef.current.clientHeight;
+    const scrollPos = scaledY - containerHeight / 2 + 60;
+    centerRef.current.scrollTo({ top: Math.max(0, scrollPos), behavior: 'smooth' });
+  }, [selectedModuleId, modules, coordinates, fitScale]);
+
   const visualNodesList = [
     ...beginnerList.map((m) => ({ ...m, type: 'module' as const })),
     { id: 'summit_beginner', name: 'Beginner Summit', level: 'Beginner' as const, type: 'summit' as const },
@@ -370,9 +392,10 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
 
   const handleCreateModule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isCreating) return;
 
     try {
+      setIsCreating(true);
       const tier = levelToTier(level);
       const dto = {
         name,
@@ -391,25 +414,31 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
       setIsCreateModalOpen(false);
       await loadModules();
       setSelectedModuleId(newModule.slug);
+      showToast('Module created successfully');
     } catch (err: any) {
       console.error('Failed to create module:', err);
       handleApiError(err);
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleDeleteModule = async () => {
     if (!selectedModule) return;
-    if (confirm(`Delete "${selectedModule.name}"? This removes its island, slides, and quiz.`)) {
-      try {
-        if (isDirtyRef.current) { await flushChanges(); }
-        const remaining = modules.filter((m) => m.id !== selectedModule.id);
-        await modulesService.deleteModule(selectedModule.dbId);
-        await loadModules();
-        setSelectedModuleId(remaining.length > 0 ? remaining[0].id : null);
-      } catch (err: any) {
-        console.error('Failed to delete module:', err);
-        handleApiError(err);
-      }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteModule = async () => {
+    if (!selectedModule) return;
+    try {
+      if (isDirtyRef.current) { await flushChanges(); }
+      const remaining = modules.filter((m) => m.id !== selectedModule.id);
+      await modulesService.deleteModule(selectedModule.dbId);
+      await loadModules();
+      setSelectedModuleId(remaining.length > 0 ? remaining[0].id : null);
+    } catch (err: any) {
+      console.error('Failed to delete module:', err);
+      handleApiError(err);
     }
   };
 
@@ -492,9 +521,10 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
     <div className="h-full flex flex-col bg-slate-50 text-slate-800 overflow-hidden font-sans">
 
       <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 select-none">
-        <div className="flex items-center gap-6 h-full text-xs font-bold">
-          <Link href={`/core/topics/${topicId}/roadmap`} className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-indigo-650 font-extrabold border-indigo-600">
-            {topicName || 'Roadmap Builder'}
+        <div className="flex items-center gap-4 h-full text-xs font-bold">
+          <Link href="/core/topics" className="flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors">
+            <Icons.ArrowLeft className="w-4 h-4" />
+            Back to Topics
           </Link>
         </div>
         <div className="flex items-center flex-shrink-0">
@@ -590,17 +620,19 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         <div className="w-[28%] bg-white border border-slate-200 rounded-[32px] shadow-xs h-full flex flex-col overflow-hidden">
           {selectedModule ? (
             <div className="flex flex-col h-full overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <Icons.Settings className="w-4 h-4 text-cyan-600" />
-                  <h3 className="text-xs font-black text-slate-800 tracking-tight font-heading uppercase">Module Settings</h3>
-                  {saveStatus === 'saving' && <span className="text-[10px] text-indigo-500 font-bold animate-pulse font-heading lowercase tracking-normal ml-1">(saving...)</span>}
-                  {saveStatus === 'saved' && <span className="text-[10px] text-emerald-600 font-bold font-heading lowercase tracking-normal ml-1">(saved)</span>}
-                  {saveStatus === 'failed' && <span className="text-[10px] text-rose-500 font-bold font-heading lowercase tracking-normal ml-1">(failed to save)</span>}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between flex-shrink-0 bg-slate-50/50">
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Icons.Settings className="w-4 h-4 text-cyan-600 flex-shrink-0" />
+                    <h3 className="text-xs font-black text-slate-800 tracking-tight font-heading uppercase flex-shrink-0">Module Settings</h3>
+                    {saveStatus === 'saving' && <span className="text-[10px] text-indigo-500 font-bold animate-pulse font-heading lowercase tracking-normal flex-shrink-0">(saving...)</span>}
+                    {saveStatus === 'saved' && <span className="text-[10px] text-emerald-600 font-bold font-heading lowercase tracking-normal flex-shrink-0">(saved)</span>}
+                    {saveStatus === 'failed' && <span className="text-[10px] text-rose-500 font-bold font-heading lowercase tracking-normal flex-shrink-0">(failed to save)</span>}
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500 font-heading uppercase tracking-wider mt-0.5">{selectedModule.level}</span>
                 </div>
-                <span className="text-[9px] font-black font-heading text-slate-555 uppercase tracking-widest bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                  {selectedModule.id.slice(0, 5).toUpperCase()}
-                </span>
+                <span className="text-lg font-black text-slate-800 font-heading flex-shrink-0">{selectedModule.orderIndex != null ? String(selectedModule.orderIndex + 1).padStart(2, '0') : '--'}</span>
+                <span className="text-[9px] font-black font-heading text-slate-555 uppercase tracking-widest bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex-shrink-0 self-center">{selectedModule.id.slice(0, 5).toUpperCase()}</span>
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs font-semibold text-slate-655">
@@ -618,6 +650,11 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                   <div className="space-y-1">
                     <label className="font-extrabold text-slate-550 text-[10px] uppercase tracking-wider">XP Points</label>
                     <input type="number" min={10} max={500} value={editPoints} onChange={(e) => handleFieldChange('points', Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-855 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                  </div>
+                  <div className="flex items-end">
+                    <Link href={`/core/module/${selectedModule.id}/content?topicId=${topicId}`} className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-black text-slate-700 py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all shadow-xs">
+                      <Icons.FileEdit className="w-3.5 h-3.5 text-cyan-600" /> Edit Content
+                    </Link>
                   </div>
                 </div>
 
@@ -645,15 +682,7 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                   </div>
                 </div>
 
-                <div className="space-y-2 border-t border-slate-100 pt-3.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href={`/core/module/${selectedModule.id}/content?topicId=${topicId}`} className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-black text-slate-700 py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all shadow-xs">
-                      <Icons.FileText className="w-3.5 h-3.5 text-cyan-600" /> Edit Slides
-                    </Link>
-                    <Link href={`/core/module/${selectedModule.id}/quiz?topicId=${topicId}`} className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-black text-slate-700 py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all shadow-xs">
-                      <Icons.HelpCircle className="w-3.5 h-3.5 text-cyan-600" /> Edit Quiz
-                    </Link>
-                  </div>
+                <div className="border-t border-slate-100 pt-3">
                   <div className="grid grid-cols-2 gap-2">
                     <button onClick={handleDeleteModule} className="bg-rose-50 hover:bg-rose-100 border border-rose-100 text-[11px] font-black text-rose-600 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs">
                       <Icons.Trash2 className="w-3.5 h-3.5" /> Delete
@@ -680,25 +709,25 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
         {isCreateModalOpen && (
           <div className="fixed inset-0 bg-black/55 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl relative text-slate-800">
-              <button onClick={() => setIsCreateModalOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors">
+              <button onClick={() => !isCreating && setIsCreateModalOpen(false)} disabled={isCreating} className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50">
                 <Icons.X className="w-4 h-4" />
               </button>
-              <h3 className="text-base font-black text-slate-900 font-heading tracking-tight mb-1">Create Learning Module</h3>
-              <p className="text-[10px] text-slate-550 mb-5 leading-normal">Register a new module to automatically generate a cloud island on the preview canvas.</p>
+              <h3 className="text-base font-black text-slate-900 font-heading tracking-tight mb-1">Create Module</h3>
+              <p className="text-[10px] text-slate-550 mb-5 leading-normal">Create a new module for this topic. A roadmap island will be generated automatically.</p>
               <form onSubmit={handleCreateModule} className="space-y-4 text-xs font-semibold">
                 <div className="space-y-1">
                   <label className="font-extrabold text-slate-500 block">Module Name</label>
-                  <input type="text" required placeholder="e.g. Amazon CloudFront CDN" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                  <input type="text" required placeholder="e.g. Amazon CloudFront CDN" value={name} onChange={(e) => setName(e.target.value)} disabled={isCreating} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50" />
                 </div>
                 <div className="space-y-1">
                   <label className="font-extrabold text-slate-550 block">Description</label>
-                  <textarea required rows={2} placeholder="Provide module objectives overview..." value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed" />
+                  <textarea required rows={2} placeholder="Provide module objectives overview..." value={description} onChange={(e) => setDescription(e.target.value)} disabled={isCreating} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed disabled:opacity-50" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="font-extrabold text-slate-550 block">Curriculum Level</label>
                     <div className="relative">
-                      <select value={level} onChange={(e: any) => setLevel(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer appearance-none font-bold">
+                      <select value={level} onChange={(e: any) => setLevel(e.target.value)} disabled={isCreating} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer appearance-none font-bold disabled:opacity-50">
                         <option value="Beginner">Beginner Level</option>
                         <option value="Intermediate">Intermediate Level</option>
                         <option value="Advanced">Advanced Level</option>
@@ -709,17 +738,35 @@ export default function RoadmapBuilder({ topicId, topicName }: RoadmapBuilderPro
                 </div>
                 <div className="space-y-1">
                   <label className="font-extrabold text-slate-550 block">XP Reward Points</label>
-                  <input type="number" required min={10} max={500} value={points} onChange={(e) => setPoints(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                  <input type="number" required min={10} max={500} value={points} onChange={(e) => setPoints(Number(e.target.value))} disabled={isCreating} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50" />
                 </div>
                 <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100 mt-5">
-                  <button type="button" onClick={() => setIsCreateModalOpen(false)} className="bg-transparent hover:bg-slate-100 border border-slate-200 text-slate-500 font-bold px-4 py-2.5 rounded-xl transition-all">Cancel</button>
-                  <button type="submit" className="bg-[#00cba9] hover:bg-[#00bda0] text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg transition-all">Register Module</button>
+                  <button type="button" onClick={() => setIsCreateModalOpen(false)} disabled={isCreating} className="bg-transparent hover:bg-slate-100 border border-slate-200 text-slate-500 font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50">Cancel</button>
+                  <button type="submit" disabled={isCreating} className="bg-[#00cba9] hover:bg-[#00bda0] text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center gap-2">
+                    {isCreating ? (
+                      <>
+                        <Icons.Loader2 className="w-4 h-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Module'
+                    )}
+                  </button>
                 </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Module"
+        entityName={selectedModule?.name || ''}
+        message="All slides and quiz questions inside this module will also be deleted."
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDeleteModule}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import * as Icons from 'lucide-react';
 import { learningService, TopicSummary } from '@/services/api';
 import { getAuthSession } from '@/lib/authHelper';
+import { authService } from '@/services/auth.service';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,11 @@ export default function LearnPage() {
   const [topics, setTopics] = useState<TopicSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleExit = () => {
+    authService.logout();
+    router.push('/login');
+  };
 
   useEffect(() => {
     const session = getAuthSession();
@@ -108,16 +114,25 @@ export default function LearnPage() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6 py-16">
           {/* Header */}
-          <div className="mb-12">
-            <span className="text-[10px] font-black tracking-widest text-sky-500 uppercase font-heading block mb-2">
-              AWS Cloud Club
-            </span>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
-              Choose Your Learning Track
-            </h1>
-            <p className="text-sm text-slate-600 mt-2 max-w-lg">
-              Select a topic to begin your cloud journey. Each track contains curated modules with slides, quizzes, and hands-on content.
-            </p>
+          <div className="mb-12 flex items-start justify-between">
+            <div>
+              <span className="text-[10px] font-black tracking-widest text-sky-500 uppercase font-heading block mb-2">
+                AWS Cloud Club
+              </span>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
+                Choose Your Learning Track
+              </h1>
+              <p className="text-sm text-slate-600 mt-2 max-w-lg">
+                Select a topic to begin your cloud journey. Each track contains curated modules with slides, quizzes, and hands-on content.
+              </p>
+            </div>
+            <button
+              onClick={handleExit}
+              className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-500 rounded-2xl transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
+              title="Logout"
+            >
+              <Icons.LogOut className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Topic cards */}

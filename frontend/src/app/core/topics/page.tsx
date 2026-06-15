@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as Icons from 'lucide-react';
 import { topicsService, type TopicData } from '@/services/api';
@@ -9,6 +10,8 @@ import { authService } from '@/services/auth.service';
 import TopicCard from '@/components/Core/TopicCard';
 import CreateTopicModal from '@/components/Core/CreateTopicModal';
 import EditTopicModal from '@/components/Core/EditTopicModal';
+import DeleteTopicModal from '@/components/Core/DeleteTopicModal';
+import { showToast } from '@/components/Core/Toast';
 
 export default function TopicsDirectoryPage() {
   const router = useRouter();
@@ -17,6 +20,7 @@ export default function TopicsDirectoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState<TopicData | null>(null);
+  const [deletingTopic, setDeletingTopic] = useState<TopicData | null>(null);
 
   const handleApiError = (err: any) => {
     const apiError = err as ApiError;
@@ -51,10 +55,16 @@ export default function TopicsDirectoryPage() {
   const handleCreateTopic = async (name: string, description: string) => {
     await topicsService.createTopic({ name, description });
     await loadTopics();
+    showToast('Topic created successfully');
   };
 
   const handleUpdateTopic = async (id: string, name: string, description: string) => {
     await topicsService.updateTopic(id, { name, description });
+    await loadTopics();
+  };
+
+  const handleDeleteTopic = async (id: string) => {
+    await topicsService.deleteTopic(id);
     await loadTopics();
   };
 
@@ -85,6 +95,12 @@ export default function TopicsDirectoryPage() {
           <span className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-indigo-650 font-extrabold border-indigo-600">
             Topics Directory
           </span>
+          <Link
+            href="/core/learners"
+            className="transition-all duration-150 h-full flex items-center px-1 text-slate-500 hover:text-indigo-600 hover:border-b-2 hover:border-indigo-300 border-b-2 border-transparent"
+          >
+            Learners
+          </Link>
         </div>
         <div className="flex items-center flex-shrink-0">
           <button
@@ -129,7 +145,7 @@ export default function TopicsDirectoryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {topics.map((topic) => (
-              <TopicCard key={topic.id} topic={topic} onEdit={setEditingTopic} />
+              <TopicCard key={topic.id} topic={topic} onEdit={setEditingTopic} onDelete={setDeletingTopic} />
             ))}
           </div>
         )}
@@ -146,6 +162,13 @@ export default function TopicsDirectoryPage() {
         topic={editingTopic}
         onClose={() => setEditingTopic(null)}
         onSubmit={handleUpdateTopic}
+      />
+
+      <DeleteTopicModal
+        isOpen={!!deletingTopic}
+        topic={deletingTopic}
+        onClose={() => setDeletingTopic(null)}
+        onSubmit={handleDeleteTopic}
       />
     </div>
   );

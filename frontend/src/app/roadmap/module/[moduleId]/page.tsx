@@ -13,6 +13,7 @@ import { LearningContentRenderer } from '@/components/Roadmap/LearningContentRen
 import { QuizEntry } from '@/components/Roadmap/QuizEntry';
 import { QuizReview, QuizReviewData } from '@/components/Roadmap/QuizReview';
 import { ModuleCompletionBanner } from '@/components/Roadmap/ModuleCompletionBanner';
+import QuizSubmitModal from '@/components/Roadmap/QuizSubmitModal';
 
 interface Confetti {
   x: number;
@@ -83,6 +84,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: number }>({});
   const [shake, setShake] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [quizReview, setQuizReview] = useState<QuizReviewData | undefined>(undefined);
   const [quizResult, setQuizResult] = useState<{ topicCompleted: boolean; nextTopicUnlocked: boolean } | null>(null);
   
@@ -390,6 +392,10 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
       return;
     }
 
+    setShowSubmitConfirm(true);
+  };
+
+  const confirmSubmitQuiz = async () => {
     if (isSubmitting) return;
 
     try {
@@ -410,6 +416,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
       setQuizReview(reviewData);
       setQuizResult({ topicCompleted: result.topicCompleted, nextTopicUnlocked: result.nextTopicUnlocked });
       setStep('review');
+      setShowSubmitConfirm(false);
     } catch (err: any) {
       console.error("Failed to submit quiz attempt:", err);
       handleApiError(err);
@@ -645,6 +652,15 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
           </AnimatePresence>
         </div>
       </div>
+
+      <QuizSubmitModal
+        isOpen={showSubmitConfirm}
+        answeredCount={Object.keys(userAnswers).length}
+        totalQuestions={quizQuestions.length}
+        isSubmitting={isSubmitting}
+        onClose={() => setShowSubmitConfirm(false)}
+        onSubmit={confirmSubmitQuiz}
+      />
 
       <style jsx global>{`
         @keyframes shake {

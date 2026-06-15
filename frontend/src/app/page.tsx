@@ -15,6 +15,8 @@ export default function Home() {
     } else {
       if (session.role === 'core') {
         router.replace('/core/topics');
+      } else if (session.role === 'crew') {
+        router.replace('/core/learners');
       } else {
         router.replace('/learn');
       }

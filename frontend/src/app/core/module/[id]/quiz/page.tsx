@@ -8,6 +8,8 @@ import { ApiError } from '@/services/apiClient';
 import { authService } from '@/services/auth.service';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ConfirmDeleteModal from '@/components/Core/ConfirmDeleteModal';
+import { showToast } from '@/components/Core/Toast';
 
 const tierToLevel = (tier: string): 'Beginner' | 'Intermediate' | 'Advanced' => {
   const map: Record<string, 'Beginner' | 'Intermediate' | 'Advanced'> = {
@@ -29,6 +31,8 @@ export default function QuizEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [isDeleteQuestionModalOpen, setIsDeleteQuestionModalOpen] = useState(false);
+  const [pendingDeleteQuestionIdx, setPendingDeleteQuestionIdx] = useState<number | null>(null);
 
   // Student simulation quiz preview states
   const [simSelectedIdx, setSimSelectedIdx] = useState<number | null>(null);
@@ -195,6 +199,7 @@ export default function QuizEditorPage() {
       await flushQuestions();
 
       setActiveQuestionIdx(updated.length - 1);
+      showToast('Question created successfully');
     } catch (err) {
       console.error(err);
     }
@@ -206,16 +211,22 @@ export default function QuizEditorPage() {
       alert("At least one question is required for a module assessment.");
       return;
     }
+    setPendingDeleteQuestionIdx(idx);
+    setIsDeleteQuestionModalOpen(true);
+  };
+
+  const confirmDeleteQuestion = async () => {
+    if (pendingDeleteQuestionIdx === null) return;
     try {
       await flushQuestions();
-      const updated = questions.filter((_, i) => i !== idx);
+      const updated = questions.filter((_, i) => i !== pendingDeleteQuestionIdx);
 
       isDirtyRef.current = true;
       setQuestions(updated);
       questionsRef.current = updated;
       await flushQuestions();
 
-      setActiveQuestionIdx(Math.max(0, idx - 1));
+      setActiveQuestionIdx(Math.max(0, pendingDeleteQuestionIdx - 1));
     } catch (err) {
       console.error(err);
     }
@@ -320,7 +331,7 @@ export default function QuizEditorPage() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
-            href={module?.topicId ? `/core/topics/${module.topicId}/roadmap` : '/core/topics'}
+            href={module?.topicId ? `/core/topics/${module.topicId}/roadmap?selected=${module.id}` : '/core/topics'}
             className="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 transition-colors shadow-sm"
           >
             <Icons.ArrowLeft className="w-4 h-4" />
@@ -608,6 +619,14 @@ export default function QuizEditorPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteQuestionModalOpen}
+        title="Delete Question"
+        entityName={pendingDeleteQuestionIdx !== null ? `Q${pendingDeleteQuestionIdx + 1}` : ''}
+        onClose={() => { setIsDeleteQuestionModalOpen(false); setPendingDeleteQuestionIdx(null); }}
+        onConfirm={confirmDeleteQuestion}
+      />
     </div>
   );
 }

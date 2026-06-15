@@ -9,6 +9,7 @@ import type { TopicData } from '@/services/api';
 interface TopicCardProps {
   topic: TopicData;
   onEdit: (topic: TopicData) => void;
+  onDelete: (topic: TopicData) => void;
 }
 
 const levelColorMap: Record<string, string> = {
@@ -17,7 +18,7 @@ const levelColorMap: Record<string, string> = {
   ADVANCED: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
-export default function TopicCard({ topic, onEdit }: TopicCardProps) {
+export default function TopicCard({ topic, onEdit, onDelete }: TopicCardProps) {
   const beginnerCount = topic.modules.filter((m) => m.level === 'BEGINNER').length;
   const intermediateCount = topic.modules.filter((m) => m.level === 'INTERMEDIATE').length;
   const advancedCount = topic.modules.filter((m) => m.level === 'ADVANCED').length;
@@ -39,6 +40,12 @@ export default function TopicCard({ topic, onEdit }: TopicCardProps) {
             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors flex-shrink-0 ml-2"
           >
             <Icons.Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(topic)}
+            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors flex-shrink-0"
+          >
+            <Icons.Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
 

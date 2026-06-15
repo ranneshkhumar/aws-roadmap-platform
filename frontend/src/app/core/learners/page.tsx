@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRoadmapStore } from '@/store/roadmapStore';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { learnersService, type LearnerSummary } from '@/services/api';
+import { getAuthSession } from '@/lib/authHelper';
 
 function getInitials(name: string): string {
   return name
@@ -17,7 +17,8 @@ function getInitials(name: string): string {
 }
 
 export default function LearnersDirectoryPage() {
-  const { modules } = useRoadmapStore();
+  const session = getAuthSession();
+  const isCrew = session.role === 'crew';
   const [learners, setLearners] = useState<LearnerSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,12 +70,14 @@ export default function LearnersDirectoryPage() {
       {/* HEADER */}
       <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 select-none">
         <div className="flex items-center gap-6 h-full text-xs font-bold">
-          <Link
-            href="/core/topics"
-            className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700"
-          >
-            Roadmap Builder
-          </Link>
+          {!isCrew && (
+            <Link
+              href="/core/topics"
+              className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700"
+            >
+              Roadmap Builder
+            </Link>
+          )}
           <Link
             href="/core/learners"
             className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-indigo-650 font-extrabold border-indigo-600"
