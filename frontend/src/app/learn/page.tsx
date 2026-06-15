@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { 
   LogOut, 
   Search, 
-  Lock, 
-  Check, 
   BookOpen, 
   AlertCircle, 
   X,
@@ -23,6 +21,8 @@ import { getAuthSession } from '@/lib/authHelper';
 import { authService } from '@/services/auth.service';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { SkyBackground } from '@/components/Roadmap/SkyBackground';
+import { TopicRailItem } from '@/components/Learn/TopicRailItem';
+import { LearningGuidePanel } from '@/components/Learn/LearningGuidePanel';
 import { cn } from '@/lib/utils';
 
 export default function LearnPage() {
@@ -182,7 +182,7 @@ export default function LearnPage() {
         {/* Cloud Background from Roadmaps */}
         <SkyBackground />
 
-        <div className="max-w-6xl mx-auto px-6 pt-8 flex flex-col gap-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 pt-8 flex flex-col gap-8 relative z-10">
           
           {/* ROADMAP PROGRESS HEADER PANEL */}
           <header className="bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-full pointer-events-auto">
@@ -282,159 +282,62 @@ export default function LearnPage() {
             </div>
           </header>
 
-          {/* SEARCH BAR SUB-SECTION */}
-          <div className="flex justify-end items-center mt-2 pointer-events-auto">
-            <div className="relative min-w-[240px] max-w-xs w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search Topics"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2 bg-white/90 border border-slate-200/80 rounded-full text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 shadow-sm transition-all"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+          {/* TWO-COLUMN LAYOUT: Topic rail + Learning Guide */}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Column: Search + Topic Rail */}
+            <div className="flex-[2] min-w-0">
+              <div className="flex justify-end items-center pointer-events-auto">
+                <div className="relative min-w-[240px] max-w-xs w-full">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search Topics"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-9 py-2 bg-white/90 border border-slate-200/80 rounded-full text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 shadow-sm transition-all"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <main className="flex flex-col items-center">
+                {filteredTopics.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 px-4">
+                    <BookOpen className="w-12 h-12 text-slate-300 mb-3" />
+                    <h3 className="text-sm font-bold text-slate-600">No matching topics found</h3>
+                    <p className="text-xs text-slate-400 mt-1">Try search with a different keyword</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 w-full px-4 py-6 animate-fade-in">
+                    {filteredTopics.map((topic) => {
+                      const status = getDialStatus(topic);
+                      return (
+                        <TopicRailItem
+                          key={topic.id}
+                          topic={topic}
+                          status={status}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </main>
+            </div>
+
+            {/* Right Column: Learning Guide Panel */}
+            <div className="w-full lg:w-[360px] flex-shrink-0">
+              <div className="lg:sticky lg:top-8">
+                <LearningGuidePanel />
+              </div>
             </div>
           </div>
-
-          {/* RESPONSIVE TOPIC DIALS GRID */}
-          <main className="flex-1">
-            {filteredTopics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-4">
-                <BookOpen className="w-12 h-12 text-slate-300 mb-3" />
-                <h3 className="text-sm font-bold text-slate-600">No matching topics found</h3>
-                <p className="text-xs text-slate-400 mt-1">Try search with a different keyword</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 justify-items-center py-6 animate-fade-in">
-                {filteredTopics.map((topic) => {
-                  const status = getDialStatus(topic);
-                  const isLocked = status === 'LOCKED';
-                  
-                  return (
-                    <button
-                      key={topic.id}
-                      disabled={isLocked}
-                      onClick={() => !isLocked && router.push(`/learn/${topic.slug}`)}
-                      className={cn(
-                        "relative flex flex-col items-center justify-center rounded-full transition-all duration-300 select-none outline-none focus:outline-none",
-                        "w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36",
-                        isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer",
-                        status === 'CURRENT' ? "hover:animate-slow-hover" : ""
-                      )}
-                    >
-                      {/* 1. Outer Ring / 3D Base Plate */}
-                      <div
-                        className={cn(
-                          "absolute inset-0 rounded-full transition-all duration-500",
-                          "border bg-gradient-to-b shadow-md",
-                          // Current: Emerald glow & pulse ring
-                          status === 'CURRENT' && [
-                            "border-emerald-300/80 bg-gradient-to-b from-emerald-50 to-slate-200/40",
-                            "shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-2 ring-emerald-400/20"
-                          ],
-                          // Available: Blue accent ring
-                          status === 'AVAILABLE' && [
-                            "border-blue-300/70 bg-gradient-to-b from-blue-50/50 to-slate-200/40",
-                            "shadow-[0_0_10px_rgba(59,130,246,0.15)] ring-1 ring-blue-400/10"
-                          ],
-                          // Completed: Gold ring
-                          status === 'COMPLETED' && [
-                            "border-amber-300 bg-gradient-to-b from-amber-50 to-slate-200/40",
-                            "shadow-[0_0_10px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/10"
-                          ],
-                          // Locked: Gray metal finish
-                          status === 'LOCKED' && [
-                            "border-slate-300 bg-slate-200 shadow-inner"
-                          ]
-                        )}
-                      />
-
-                      {/* 2. Recessed Socket (Inner Well) */}
-                      <div
-                        className={cn(
-                          "absolute inset-2 rounded-full transition-all duration-500",
-                          "shadow-[inset_0_4px_8px_rgba(15,23,42,0.06),inset_0_-2px_4px_rgba(255,255,255,0.7)]",
-                          status === 'CURRENT' && "border border-emerald-100/50 bg-emerald-50/10",
-                          status === 'AVAILABLE' && "border border-blue-50/50 bg-sky-50/5",
-                          status === 'COMPLETED' && "border border-amber-100/50 bg-amber-50/5",
-                          status === 'LOCKED' && "border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.08)] bg-slate-100"
-                        )}
-                      />
-
-                      {/* 3. Interactive Plunger (Center Cap) */}
-                      <div
-                        className={cn(
-                          "absolute inset-4 rounded-full transition-all duration-500 flex flex-col items-center justify-center p-3 text-center",
-                          "shadow-[0_6px_10px_rgba(15,23,42,0.1),0_1px_3px_rgba(15,23,42,0.06),inset_0_2px_3px_rgba(255,255,255,0.95),inset_0_-2px_3px_rgba(15,23,42,0.06)]",
-                          
-                          // Press down animation on hover/active
-                          !isLocked && (status === 'COMPLETED'
-                            ? "bg-gradient-to-b from-amber-50/90 to-amber-100/40 text-slate-700 border border-amber-300/60 shadow-[inset_0_3px_5px_rgba(15,23,42,0.05)] scale-[0.96] hover:translate-y-0 hover:scale-[0.96]" // slightly depressed center caps do not pop out
-                            : "hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md active:scale-95 active:translate-y-0.5 active:shadow-sm"
-                          ),
-
-                          status === 'CURRENT' && [
-                            "bg-gradient-to-b from-emerald-50 to-white text-slate-800 border border-emerald-200",
-                            "animate-cap-bob"
-                          ],
-                          status === 'AVAILABLE' && "bg-gradient-to-b from-sky-50 to-white text-slate-800 border border-blue-200",
-                          status === 'LOCKED' && "bg-slate-200/90 text-slate-400 border border-slate-300 shadow-none hover:translate-y-0 hover:scale-100"
-                        )}
-                      >
-                        {/* Topic Name */}
-                        <span
-                          className={cn(
-                            "text-[10px] md:text-xs font-bold leading-tight line-clamp-3 select-none tracking-tight font-heading px-1",
-                            status === 'CURRENT' && "text-emerald-700",
-                            status === 'AVAILABLE' && "text-blue-700",
-                            status === 'COMPLETED' && "text-amber-800",
-                            status === 'LOCKED' && "text-slate-400"
-                          )}
-                        >
-                          {topic.name}
-                        </span>
-
-                        {/* Status Icon/Overlay */}
-                        <div className="absolute bottom-2">
-                          {status === 'COMPLETED' && (
-                            <Check className="w-3.5 h-3.5 text-amber-600 stroke-[3.5]" />
-                          )}
-                          {status === 'LOCKED' && (
-                            <Lock className="w-3 h-3 text-slate-400" />
-                          )}
-                          {status === 'CURRENT' && (
-                            <div className="relative flex items-center justify-center">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping absolute" />
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 4. Chain Overlay for Locked Dial */}
-                      {status === 'LOCKED' && (
-                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden rounded-full opacity-35">
-                          <svg className="absolute inset-0 w-full h-full text-slate-600" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            {/* Crossed diagonal dashed line chain overlay representation */}
-                            <line x1="12" y1="12" x2="88" y2="88" strokeDasharray="5 3" />
-                            <line x1="88" y1="12" x2="12" y2="88" strokeDasharray="5 3" />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </main>
 
         </div>
       </div>

@@ -67,7 +67,7 @@ export class LearningService {
       status = 'IN_PROGRESS';
     }
 
-    let unlocked = true;
+    const unlocked = previousTopicStatus === undefined || previousTopicStatus === 'COMPLETED';
 
     return { status, unlocked, totalModules, completedModules };
   }
