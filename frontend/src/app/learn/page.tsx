@@ -43,6 +43,13 @@ export default function LearnPage() {
     router.push('/login');
   };
 
+  // Resume navigation handler (shared between green circle and Resume button)
+  const handleResume = () => {
+    if (continueModule) {
+      router.push(`/learn/${continueModule.topicSlug}`);
+    }
+  };
+
   // Auth & Initial Fetch
   useEffect(() => {
     const session = getAuthSession();
@@ -188,10 +195,20 @@ export default function LearnPage() {
           <header className="bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-full pointer-events-auto">
             {/* Left Side: Current Mission Info */}
             <div className="flex items-center gap-4 w-full md:w-auto">
-              {/* Green circle with > icon */}
-              <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+              {/* Green circle with > icon (same action as Resume Learning) */}
+              <button
+                onClick={handleResume}
+                disabled={!continueModule}
+                aria-label="Resume learning"
+                className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-300 flex-shrink-0",
+                  continueModule
+                    ? "bg-emerald-500 shadow-emerald-500/20 cursor-pointer hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105 active:scale-95"
+                    : "bg-slate-300 cursor-not-allowed"
+                )}
+              >
                 <ChevronRight className="w-6 h-6 stroke-[3]" />
-              </div>
+              </button>
               <div className="flex flex-col text-slate-800">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
                   CONTINUE YOUR JOURNEY
@@ -269,7 +286,7 @@ export default function LearnPage() {
 
               <button
                 disabled={!continueModule}
-                onClick={() => continueModule && router.push(`/learn/${continueModule.topicSlug}`)}
+                onClick={handleResume}
                 className={cn(
                   "font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading cursor-pointer text-white",
                   continueModule 

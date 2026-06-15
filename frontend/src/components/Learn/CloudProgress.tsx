@@ -9,7 +9,10 @@ interface CloudProgressProps {
 }
 
 const CLOUD_PATH =
-  'M 6,54 A 12,12 0 0,1 18,42 A 16,16 0 0,1 50,30 A 14,14 0 0,1 78,38 A 12,12 0 0,1 94,54 Z';
+  'M 12,42 A 10,10 0 0,1 22,33 A 14,14 0 0,1 48,25 A 12,12 0 0,1 70,29 A 14,14 0 0,1 102,33 A 10,10 0 0,1 148,42 Z';
+
+const HIGHLIGHT_PATH =
+  'M 14,40 A 9,9 0 0,1 23,32 A 13,13 0 0,1 48,25 A 11,11 0 0,1 69,29 A 13,13 0 0,1 101,33 A 9,9 0 0,1 146,40';
 
 const COLOR_MAP = {
   sky: {
@@ -30,16 +33,16 @@ const COLOR_MAP = {
 
 export const CloudProgress: React.FC<CloudProgressProps> = ({ pct, color, topicId }) => {
   const c = COLOR_MAP[color];
-  const cloudBottom = 54;
-  const cloudTop = 30;
+  const cloudBottom = 42;
+  const cloudTop = 25;
   const fillRange = cloudBottom - cloudTop;
   const waterY = cloudBottom - (pct / 100) * fillRange;
 
   const uid = `cp-${topicId}`;
 
   return (
-    <div className="w-[110px] h-[64px] flex-shrink-0">
-      <svg viewBox="0 0 100 60" className="w-full h-full" fill="none">
+    <div className="w-full h-full">
+      <svg viewBox="0 0 160 50" className="w-full h-full" fill="none">
         <defs>
           <clipPath id={`${uid}-clip`}>
             <path d={CLOUD_PATH} />
@@ -48,40 +51,53 @@ export const CloudProgress: React.FC<CloudProgressProps> = ({ pct, color, topicI
             <stop offset="0%" stopColor={c.waterFrom} />
             <stop offset="100%" stopColor={c.waterTo} />
           </linearGradient>
+          <linearGradient id={`${uid}-body`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.28)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
+          </linearGradient>
         </defs>
 
-        {/* Cloud outline */}
-        <path d={CLOUD_PATH} stroke={c.stroke} strokeWidth="1.8" opacity="0.85" />
+        {/* Depth shadow */}
+        <path d={CLOUD_PATH} fill="rgba(0,0,0,0.06)" transform="translate(0, 2)" />
+
+        {/* Cloud body (glass background) */}
+        <path d={CLOUD_PATH} fill={`url(#${uid}-body)`} />
 
         {/* Water fill clipped to cloud shape */}
         <g clipPath={`url(#${uid}-clip)`}>
-          <rect x="0" y={waterY} width="100" height={cloudBottom - waterY} fill={`url(#${uid}-water)`} />
+          <rect x="0" y={waterY} width="160" height={cloudBottom - waterY} fill={`url(#${uid}-water)`} />
 
-          {/* Animated wave surface */}
+          {/* Animated wave */}
           {pct > 0 && pct < 100 && (
             <g>
               <animateTransform
                 attributeName="transform"
                 type="translate"
-                values="0,0; -10,0; 0,0"
+                values="0,0; -12,0; 0,0"
                 dur="4s"
                 repeatCount="indefinite"
               />
               <path
-                d={`M -15,${waterY} Q 0,${waterY - 2.5} 12,${waterY} T 35,${waterY} T 58,${waterY} T 80,${waterY} T 105,${waterY} T 125,${waterY} L 125,60 L -15,60 Z`}
+                d={`M -20,${waterY} Q 0,${waterY - 2} 20,${waterY} T 60,${waterY} T 100,${waterY} T 140,${waterY} T 180,${waterY} L 180,50 L -20,50 Z`}
                 fill={c.wave}
               />
             </g>
           )}
         </g>
 
+        {/* Glass top highlight */}
+        <path d={HIGHLIGHT_PATH} stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" fill="none" opacity={pct === 0 ? 1 : 0.5} />
+
+        {/* Cloud outline */}
+        <path d={CLOUD_PATH} stroke={c.stroke} strokeWidth="1.5" opacity="0.8" />
+
         {/* Percentage text */}
         <text
-          x="50"
-          y="49"
+          x="80"
+          y="36"
           textAnchor="middle"
           fill={c.text}
-          className="text-[11px] font-black"
+          className="text-[10px] font-black"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
           {pct}%

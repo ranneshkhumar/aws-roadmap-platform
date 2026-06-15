@@ -43,7 +43,7 @@ export const TopicRailItem: React.FC<TopicRailItemProps> = ({ topic, status }) =
       onClick={handleClick}
       disabled={isLocked}
       className={cn(
-        'relative w-full max-w-[750px] h-[80px] group',
+        'relative w-full max-w-[900px] h-[120px] group',
         'transition-all duration-[250ms]',
         isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-0.5',
       )}
@@ -77,71 +77,76 @@ export const TopicRailItem: React.FC<TopicRailItemProps> = ({ topic, status }) =
 
       {/* Content row */}
       <div className="relative flex items-center justify-between h-full px-6">
-        {/* Left: Icon + Topic name */}
-        <div className="flex items-center gap-3 min-w-0">
+        {/* Left: Icon + Topic name + Status */}
+        <div className="flex items-center gap-4 min-w-0">
           <div
             className={cn(
-              'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-[250ms]',
+              'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-[250ms]',
               status === 'CURRENT' && 'bg-sky-500/15 text-sky-600',
               status === 'AVAILABLE' && 'bg-blue-500/10 text-blue-600',
               status === 'COMPLETED' && 'bg-emerald-500/10 text-emerald-600',
               status === 'LOCKED' && 'bg-slate-500/10 text-slate-500',
             )}
           >
-            <IconComponent className="w-4 h-4" />
+            <IconComponent className="w-5 h-5" />
           </div>
-          <span
-            className={cn(
-              'text-base sm:text-lg font-semibold tracking-tight truncate',
-              status === 'CURRENT' && 'text-sky-800',
-              status === 'AVAILABLE' && 'text-slate-800',
-              status === 'COMPLETED' && 'text-slate-800',
-              status === 'LOCKED' && 'text-slate-500',
-            )}
-          >
-            {topic.name}
-          </span>
+
+          <div className="flex flex-col gap-1.5">
+            <span
+              className={cn(
+                'text-base sm:text-lg font-semibold tracking-tight truncate',
+                status === 'CURRENT' && 'text-sky-800',
+                status === 'AVAILABLE' && 'text-slate-800',
+                status === 'COMPLETED' && 'text-slate-800',
+                status === 'LOCKED' && 'text-slate-500',
+              )}
+            >
+              {topic.name}
+            </span>
+
+            {/* Status badge below topic name */}
+            <div className="flex items-center">
+              {status === 'CURRENT' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-sky-700 uppercase tracking-widest">
+                    Current
+                  </span>
+                </div>
+              )}
+              {status === 'AVAILABLE' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                  <span className="text-[9px] font-black text-blue-700 uppercase tracking-widest">
+                    Available
+                  </span>
+                </div>
+              )}
+              {status === 'COMPLETED' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">
+                    Completed
+                  </span>
+                </div>
+              )}
+              {status === 'LOCKED' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-500/10 border border-slate-500/20">
+                  <Lock className="w-3 h-3 text-slate-500" />
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                    Locked
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Right: Status pill + Cloud */}
-        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-          {status === 'CURRENT' && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-              <span className="text-[10px] font-black text-sky-700 uppercase tracking-widest">
-                Current
-              </span>
-            </div>
-          )}
-          {status === 'AVAILABLE' && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-              <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
-                Available
-              </span>
-            </div>
-          )}
-          {status === 'COMPLETED' && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
-              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                Completed
-              </span>
-            </div>
-          )}
-          {status === 'LOCKED' && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-500/10 border border-slate-500/20">
-              <Lock className="w-3 h-3 text-slate-500" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                Locked
-              </span>
-            </div>
-          )}
-
-          {/* Cloud progress indicator — only for unlocked topics */}
-          {!isLocked && (
+        {/* Right: Dedicated cloud area — only for unlocked topics */}
+        {!isLocked && (
+          <div className="w-[240px] h-[76px] flex-shrink-0">
             <CloudProgress pct={cloudPct} color={cloudColor} topicId={topic.id} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </button>
   );

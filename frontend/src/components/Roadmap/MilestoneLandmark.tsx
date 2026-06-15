@@ -320,16 +320,21 @@ export const CloudArchitectSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lo
           "absolute bottom-4 left-1/2 -translate-x-1/2 w-60 border rounded-2xl px-4 py-2.5 text-center shadow-2xl z-30 select-none",
           locked 
             ? "bg-slate-800 border-slate-700 text-slate-205" 
-            : "bg-slate-950 border-slate-900 text-white shadow-emerald-500/10"
+            : "bg-emerald-950/70 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/20"
         )}>
           <h4 className="text-[11px] font-black uppercase tracking-wider font-heading text-white">
-            CLOUD ARCHITECT SUMMIT
+            TOPIC COMPLETE
           </h4>
           <p className={cn(
             "text-[9.5px] font-semibold leading-snug mt-1 font-sans",
-            locked ? "text-slate-400" : "text-slate-200"
+            locked ? "text-slate-400" : "text-emerald-100"
           )}>
-            Complete all Advanced modules and become a Cloud Architect.
+            Congratulations!<br />
+            <br />
+            You have successfully completed the<br />
+            Advanced track for this topic.<br />
+            <br />
+            Ready for the next challenge.
           </p>
           {locked ? (
             <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-slate-400 p-1.5 rounded-full shadow-md">
