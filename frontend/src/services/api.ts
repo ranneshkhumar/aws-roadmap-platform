@@ -384,3 +384,29 @@ export const topicsService = {
     return res.data;
   },
 };
+
+// ============================================================================
+// LEARNERS SERVICE
+// ============================================================================
+
+export interface LearnerSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  xp: number;
+  currentTopic: string | null;
+  currentLevel: string | null;
+  currentModuleName: string | null;
+  currentModuleOrder: number | null;
+  completedModulesCount: number;
+  totalModulesCount: number;
+  isPlatformComplete: boolean;
+}
+
+export const learnersService = {
+  getLearners: async (): Promise<LearnerSummary[]> => {
+    const res = await apiClient.get<LearnerSummary[]>('/learners');
+    return res.data;
+  },
+};

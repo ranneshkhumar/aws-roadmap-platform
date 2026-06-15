@@ -1,168 +1,73 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRoadmapStore } from '@/store/roadmapStore';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { learnersService, type LearnerSummary } from '@/services/api';
 
-interface QuizAttempt {
-  moduleId: string;
-  moduleName: string;
-  score: number;
-  totalQuestions: number;
-  attempts: number;
-  date: string;
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
-
-interface StudentRecord {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  xp: number;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
-  completedModules: { id: string; name: string; date: string }[];
-  quizHistory: QuizAttempt[];
-}
-
-const INITIAL_STUDENTS: StudentRecord[] = [
-  {
-    id: 'student_1',
-    name: 'Sarah Connor',
-    email: 's.connor@university.edu',
-    avatar: 'SC',
-    xp: 2450,
-    level: 'Beginner',
-    completedModules: [
-      { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-01' },
-      { id: 'ec2', name: 'Amazon EC2', date: '2026-06-03' },
-      { id: 's3', name: 'Amazon S3', date: '2026-06-04' },
-      { id: 'iam', name: 'AWS IAM', date: '2026-06-07' }
-    ],
-    quizHistory: [
-      { moduleId: 'fundamentals', moduleName: 'AWS Fundamentals', score: 3, totalQuestions: 3, attempts: 1, date: '2026-06-01' },
-      { moduleId: 'ec2', moduleName: 'Amazon EC2', score: 2, totalQuestions: 3, attempts: 2, date: '2026-06-03' },
-      { moduleId: 's3', moduleName: 'Amazon S3', score: 4, totalQuestions: 4, attempts: 1, date: '2026-06-04' },
-      { moduleId: 'iam', moduleName: 'AWS IAM', score: 3, totalQuestions: 3, attempts: 1, date: '2026-06-07' }
-    ]
-  },
-  {
-    id: 'student_2',
-    name: 'Marcus Wright',
-    email: 'm.wright@cloudclub.org',
-    avatar: 'MW',
-    xp: 1800,
-    level: 'Intermediate',
-    completedModules: [
-      { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-02' },
-      { id: 'ec2', name: 'Amazon EC2', date: '2026-06-05' },
-      { id: 's3', name: 'Amazon S3', date: '2026-06-08' }
-    ],
-    quizHistory: [
-      { moduleId: 'fundamentals', moduleName: 'AWS Fundamentals', score: 2, totalQuestions: 3, attempts: 1, date: '2026-06-02' },
-      { moduleId: 'ec2', moduleName: 'Amazon EC2', score: 3, totalQuestions: 3, attempts: 1, date: '2026-06-05' },
-      { moduleId: 's3', moduleName: 'Amazon S3', score: 3, totalQuestions: 4, attempts: 3, date: '2026-06-08' }
-    ]
-  },
-  {
-    id: 'student_3',
-    name: 'John Connor',
-    email: 'j.connor@cyberdyne.io',
-    avatar: 'JC',
-    xp: 2900,
-    level: 'Advanced',
-    completedModules: [
-      { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-05-28' },
-      { id: 'ec2', name: 'Amazon EC2', date: '2026-05-30' },
-      { id: 's3', name: 'Amazon S3', date: '2026-06-01' },
-      { id: 'iam', name: 'AWS IAM', date: '2026-06-03' },
-      { id: 'vpc', name: 'Amazon VPC', date: '2026-06-05' },
-      { id: 'rds', name: 'Amazon RDS', date: '2026-06-09' }
-    ],
-    quizHistory: [
-      { moduleId: 'fundamentals', moduleName: 'AWS Fundamentals', score: 3, totalQuestions: 3, attempts: 1, date: '2026-05-28' },
-      { moduleId: 'ec2', moduleName: 'Amazon EC2', score: 3, totalQuestions: 3, attempts: 1, date: '2026-05-30' },
-      { moduleId: 's3', moduleName: 'Amazon S3', score: 4, totalQuestions: 4, attempts: 1, date: '2026-06-01' },
-      { moduleId: 'iam', moduleName: 'AWS IAM', score: 3, totalQuestions: 3, attempts: 1, date: '2026-06-03' },
-      { moduleId: 'vpc', moduleName: 'Amazon VPC', score: 4, totalQuestions: 5, attempts: 2, date: '2026-06-05' },
-      { moduleId: 'rds', moduleName: 'Amazon RDS', score: 5, totalQuestions: 5, attempts: 1, date: '2026-06-09' }
-    ]
-  },
-  {
-    id: 'student_4',
-    name: 'Kyle Reese',
-    email: 'k.reese@resistance.net',
-    avatar: 'KR',
-    xp: 950,
-    level: 'Beginner',
-    completedModules: [
-      { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-06' },
-      { id: 'ec2', name: 'Amazon EC2', date: '2026-06-09' }
-    ],
-    quizHistory: [
-      { moduleId: 'fundamentals', moduleName: 'AWS Fundamentals', score: 2, totalQuestions: 3, attempts: 2, date: '2026-06-06' },
-      { moduleId: 'ec2', moduleName: 'Amazon EC2', score: 2, totalQuestions: 3, attempts: 1, date: '2026-06-09' }
-    ]
-  },
-  {
-    id: 'student_5',
-    name: 'Dr. Peter Silberman',
-    email: 'silberman@hospital.org',
-    avatar: 'PS',
-    xp: 450,
-    level: 'Beginner',
-    completedModules: [
-      { id: 'fundamentals', name: 'AWS Fundamentals', date: '2026-06-08' }
-    ],
-    quizHistory: [
-      { moduleId: 'fundamentals', moduleName: 'AWS Fundamentals', score: 1, totalQuestions: 3, attempts: 3, date: '2026-06-08' }
-    ]
-  }
-];
 
 export default function LearnersDirectoryPage() {
   const { modules } = useRoadmapStore();
-  const [students, setStudents] = useState<StudentRecord[]>(INITIAL_STUDENTS);
+  const [learners, setLearners] = useState<LearnerSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
-  // Filters State
-  const [levelFilter, setLevelFilter] = useState<'all' | 'Beginner' | 'Intermediate' | 'Advanced'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'CREW' | 'ENTHUSIAST'>('all');
   const [moduleFilterType, setModuleFilterType] = useState<'all' | 'above' | 'below'>('all');
   const [moduleFilterValue, setModuleFilterValue] = useState<number>(3);
 
-  const filteredStudents = students.filter((student) => {
-    // Search Term match
-    const matchesSearch = 
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    // Level match
-    const matchesLevel = levelFilter === 'all' || student.level === levelFilter;
-    
-    // Modules Completed count match
-    const completedCount = student.completedModules.length;
+  useEffect(() => {
+    const fetchLearners = async () => {
+      try {
+        setLoading(true);
+        const data = await learnersService.getLearners();
+        setLearners(data);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load learners');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLearners();
+  }, []);
+
+  const filteredLearners = learners.filter((learner) => {
+    const matchesSearch =
+      learner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      learner.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesRole =
+      roleFilter === 'all' || learner.role === roleFilter;
+
     let matchesModules = true;
     if (moduleFilterType === 'above') {
-      matchesModules = completedCount >= moduleFilterValue;
+      matchesModules = learner.completedModulesCount >= moduleFilterValue;
     } else if (moduleFilterType === 'below') {
-      matchesModules = completedCount <= moduleFilterValue;
+      matchesModules = learner.completedModulesCount <= moduleFilterValue;
     }
-    
-    return matchesSearch && matchesLevel && matchesModules;
+
+    return matchesSearch && matchesRole && matchesModules;
   });
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || null;
+  const totalModulesCount =
+    learners.length > 0 ? learners[0].totalModulesCount : 0;
 
   return (
     <div className="h-full flex flex-col bg-slate-50 text-slate-800 overflow-hidden font-sans">
-      
-      {/* ═══════════════ HEADER ROW (Learners Directory Navigation) ═══════════════ */}
+
+      {/* HEADER */}
       <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 select-none">
-        
-        {/* Compact Module Navigation Bar */}
         <div className="flex items-center gap-6 h-full text-xs font-bold">
           <Link
             href="/core/topics"
@@ -178,11 +83,10 @@ export default function LearnersDirectoryPage() {
           </Link>
         </div>
 
-        {/* Search Input Widget */}
         <div className="relative w-72 flex-shrink-0">
           <input
             type="text"
-            placeholder="Search student name or email..."
+            placeholder="Search learner name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-850 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
@@ -191,342 +95,266 @@ export default function LearnersDirectoryPage() {
         </div>
       </header>
 
-      {/* Scrollable Content Workspace */}
+      {/* CONTENT */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* Curriculum Level & Modules Completion Filter Panel */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
-          {/* Level Filter Tabs (with counts) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block font-heading mr-1">
-              Level Filter:
-            </span>
-            {[
-              { id: 'all', label: 'All', count: students.length, color: 'border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100' },
-              { id: 'Beginner', label: 'Beginners', count: students.filter(s => s.level === 'Beginner').length, color: 'border-emerald-100 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-50' },
-              { id: 'Intermediate', label: 'Intermediate', count: students.filter(s => s.level === 'Intermediate').length, color: 'border-cyan-100 text-cyan-700 bg-cyan-50/50 hover:bg-cyan-50' },
-              { id: 'Advanced', label: 'Advanced', count: students.filter(s => s.level === 'Advanced').length, color: 'border-indigo-100 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50' },
-            ].map((tab) => {
-              const active = levelFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setLevelFilter(tab.id as any)}
-                  className={cn(
-                    "px-3 py-1.5 border rounded-xl text-xs font-black transition-all flex items-center gap-2 font-heading shadow-xs",
-                    active
-                      ? tab.id === 'all'
-                        ? "bg-slate-900 border-slate-900 text-white"
-                        : tab.id === 'Beginner'
-                          ? "bg-emerald-600 border-emerald-600 text-white"
-                          : tab.id === 'Intermediate'
-                            ? "bg-cyan-600 border-cyan-600 text-white"
-                            : "bg-indigo-600 border-indigo-600 text-white"
-                      : tab.color
-                  )}
-                >
-                  <span>{tab.label}</span>
-                  <span className={cn(
-                    "px-1.5 py-0.5 rounded-md text-[9px] font-bold border",
-                    active
-                      ? "bg-white/20 border-white/10 text-white"
-                      : "bg-white border-slate-200 text-slate-500"
-                  )}>
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* FILTERS */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
-          {/* Module Completion Count Filter */}
-          <div className="flex items-center gap-3 text-xs font-semibold">
-            <span className="text-slate-450 font-extrabold text-[10px] uppercase tracking-wider block font-heading">
-              Module Completion:
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <select
-                  value={moduleFilterType}
-                  onChange={(e) => setModuleFilterType(e.target.value as 'all' | 'above' | 'below')}
-                  className="bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-800 font-extrabold focus:bg-white focus:outline-none cursor-pointer appearance-none"
-                >
-                  <option value="all">Any count completed</option>
-                  <option value="above">Completed modules &gt;=</option>
-                  <option value="below">Completed modules &lt;=</option>
-                </select>
-                <Icons.ChevronDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
-              </div>
-              
-              {moduleFilterType !== 'all' && (
-                <input
-                  type="number"
-                  min={0}
-                  max={20}
-                  value={moduleFilterValue}
-                  onChange={(e) => setModuleFilterValue(Number(e.target.value))}
-                  className="w-14 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 text-center font-extrabold focus:bg-white focus:outline-none"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Class Statistics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[
-          { label: 'Total Explorers', value: students.length, icon: Icons.Users, color: 'text-indigo-650 bg-white border-slate-200 shadow-sm' },
-          { label: 'Total Modules Uploaded', value: modules.length, icon: Icons.Layers, color: 'text-emerald-600 bg-white border-slate-200 shadow-sm' }
-        ].map((stat, idx) => (
-          <div key={idx} className={cn("border rounded-2xl p-4 flex items-center justify-between", stat.color)}>
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase text-slate-450 block tracking-wider font-heading">
-                {stat.label}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block font-heading mr-1">
+                Role Filter:
               </span>
-              <span className="text-xl font-black text-slate-850 block">
-                {stat.value}
-              </span>
-            </div>
-            <stat.icon className="w-8 h-8 opacity-45" />
-          </div>
-        ))}
-      </div>
-
-      {/* Professional Data Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-450 bg-slate-50/50">
-                <th className="py-4 px-6">Learner Account</th>
-                <th className="py-4 px-6 text-center">XP Reward</th>
-                <th className="py-4 px-6">Completed Modules</th>
-                <th className="py-4 px-6 text-center">Curriculum Level</th>
-                <th className="py-4 px-6 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredStudents.map((student) => (
-                <tr
-                  key={student.id}
-                  onClick={() => setSelectedStudentId(student.id)}
-                  className="hover:bg-slate-50 transition-colors cursor-pointer group"
-                >
-                  {/* Account Name & Email */}
-                  <td className="py-4 px-6 flex items-center gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-650 border border-indigo-100 flex items-center justify-center font-black text-xs">
-                      {student.avatar}
-                    </div>
-                    <div>
-                      <span className="text-slate-800 font-extrabold block group-hover:text-indigo-600 transition-colors">
-                        {student.name}
-                      </span>
-                      <span className="text-slate-400 text-[10px] block mt-0.5 font-bold">
-                        {student.email}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* XP */}
-                  <td className="py-4 px-6 text-center">
-                    <span className="text-amber-600 font-black">
-                      {student.xp}
-                    </span>
-                  </td>
-
-                  {/* Completed Modules count */}
-                  <td className="py-4 px-6">
-                    <span className="text-slate-600 font-semibold">
-                      {student.completedModules.length} Modules completed
-                    </span>
-                  </td>
-
-                  {/* Curriculum Level */}
-                  <td className="py-4 px-6 text-center">
-                    <span className={cn(
-                      "px-2.5 py-1 rounded-xl text-[9px] font-black border uppercase tracking-wider whitespace-nowrap",
-                      student.level === 'Beginner'
-                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                        : student.level === 'Intermediate'
-                          ? "bg-cyan-50 text-cyan-600 border-cyan-100"
-                          : "bg-indigo-50 text-indigo-650 border-indigo-100"
-                    )}>
-                      {student.level}
-                    </span>
-                  </td>
-
-                  {/* Quick Action Button */}
-                  <td className="py-4 px-6 text-right">
-                    <button className="text-[10px] font-black text-indigo-650 hover:text-indigo-550 group-hover:translate-x-0.5 transition-transform flex items-center gap-1 ml-auto">
-                      View Profile
-                      <Icons.ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {filteredStudents.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-400 text-xs italic">
-                    No matching student accounts found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* SELECTED STUDENT DETAILS SIDE DRAWER */}
-      <AnimatePresence>
-        {selectedStudent && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Backdrop cover */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedStudentId(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-xs"
-            />
-
-            {/* Slide drawer container */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="relative w-full max-w-md bg-white border-l border-slate-200 h-full flex flex-col justify-between shadow-2xl p-6 overflow-y-auto"
-            >
-              
-              <div className="space-y-6">
-                {/* Header Profile */}
-                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-base shadow-lg shadow-indigo-500/10">
-                      {selectedStudent.avatar}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-slate-800 font-heading">
-                        {selectedStudent.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-[10px] text-slate-400 font-bold">
-                          {selectedStudent.email}
-                        </p>
-                        <span className={cn(
-                          "px-1.5 py-0.5 rounded-md text-[8px] font-black border uppercase tracking-wider whitespace-nowrap",
-                          selectedStudent.level === 'Beginner'
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            : selectedStudent.level === 'Intermediate'
-                              ? "bg-cyan-50 text-cyan-600 border-cyan-100"
-                              : "bg-indigo-50 text-indigo-650 border-indigo-100"
-                        )}>
-                          {selectedStudent.level}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
+              {[
+                { id: 'all', label: 'All Learners', color: 'border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100' },
+                { id: 'CREW', label: 'Crew Members', color: 'border-amber-100 text-amber-700 bg-amber-50/50 hover:bg-amber-50' },
+                { id: 'ENTHUSIAST', label: 'Learners', color: 'border-indigo-100 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50' },
+              ].map((tab) => {
+                const active = roleFilter === tab.id;
+                const count =
+                  tab.id === 'all'
+                    ? learners.length
+                    : learners.filter((l) => l.role === tab.id).length;
+                return (
                   <button
-                    onClick={() => setSelectedStudentId(null)}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-250 border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
+                    key={tab.id}
+                    onClick={() => setRoleFilter(tab.id as any)}
+                    className={cn(
+                      "px-3 py-1.5 border rounded-xl text-xs font-black transition-all flex items-center gap-2 font-heading shadow-xs",
+                      active
+                        ? tab.id === 'all'
+                          ? "bg-slate-900 border-slate-900 text-white"
+                          : tab.id === 'CREW'
+                            ? "bg-amber-600 border-amber-600 text-white"
+                            : "bg-indigo-600 border-indigo-600 text-white"
+                        : tab.color
+                    )}
                   >
-                    <Icons.X className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[9px] font-bold border",
+                      active
+                        ? "bg-white/20 border-white/10 text-white"
+                        : "bg-white border-slate-200 text-slate-500"
+                    )}>
+                      {count}
+                    </span>
                   </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <span className="text-slate-450 font-extrabold text-[10px] uppercase tracking-wider block font-heading">
+                Module Completion:
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <select
+                    value={moduleFilterType}
+                    onChange={(e) => setModuleFilterType(e.target.value as 'all' | 'above' | 'below')}
+                    className="bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-800 font-extrabold focus:bg-white focus:outline-none cursor-pointer appearance-none"
+                  >
+                    <option value="all">Any count completed</option>
+                    <option value="above">Completed modules &gt;=</option>
+                    <option value="below">Completed modules &lt;=</option>
+                  </select>
+                  <Icons.ChevronDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                 </div>
 
-                {/* Sub details card */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-heading block">
-                      XP Balance
-                    </span>
-                    <span className="text-base font-black text-amber-600 mt-1 block">
-                      {selectedStudent.xp} XP
-                    </span>
-                  </div>
-                </div>
-
-                {/* Completed Modules list */}
-                <div className="space-y-2.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-450 block font-heading">
-                    Completed Islands ({selectedStudent.completedModules.length})
-                  </span>
-
-                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin text-xs">
-                    {selectedStudent.completedModules.map((mod, idx) => (
-                      <div key={idx} className="bg-slate-50/50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-slate-700">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
-                            <Icons.Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                          </div>
-                          <span className="font-extrabold">{mod.name}</span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-bold">{mod.date}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quiz History attempt records */}
-                <div className="space-y-2.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-450 block font-heading">
-                    Assessment Attempt Records
-                  </span>
-
-                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin text-xs">
-                    {selectedStudent.quizHistory.map((quiz, idx) => {
-                      const percentage = Math.round((quiz.score / quiz.totalQuestions) * 100);
-                      const isPassing = percentage >= 70;
-                      return (
-                        <div key={idx} className="bg-slate-50/50 border border-slate-200 rounded-xl p-3 space-y-2 text-slate-700">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-slate-800 truncate max-w-[200px]">
-                              {quiz.moduleName}
-                            </span>
-                            <span className={cn(
-                              "text-[9px] font-black px-2 py-0.5 border rounded-md uppercase tracking-wider",
-                              isPassing
-                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                : "bg-rose-50 text-rose-600 border-rose-100"
-                            )}>
-                              {percentage}% Correct
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold pt-1 border-t border-slate-200/50">
-                            <span>Score: {quiz.score} / {quiz.totalQuestions}</span>
-                            <span>Attempts: {quiz.attempts}</span>
-                            <span>Date: {quiz.date}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
+                {moduleFilterType !== 'all' && (
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={moduleFilterValue}
+                    onChange={(e) => setModuleFilterValue(Number(e.target.value))}
+                    className="w-14 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 text-center font-extrabold focus:bg-white focus:outline-none"
+                  />
+                )}
               </div>
-
-              {/* Reset simulator context button */}
-              <div className="pt-6 border-t border-slate-200 mt-6 flex-shrink-0">
-                <button
-                  onClick={() => setSelectedStudentId(null)}
-                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-black text-xs py-3 rounded-2xl text-center transition-all shadow-sm"
-                >
-                  Close Profile Overview
-                </button>
-              </div>
-
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
-      </div>
+        </div>
 
+        {/* STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { label: 'Total Learners', value: learners.length, icon: Icons.Users, color: 'text-indigo-650 bg-white border-slate-200 shadow-sm' },
+            { label: 'Total Modules', value: totalModulesCount, icon: Icons.Layers, color: 'text-emerald-600 bg-white border-slate-200 shadow-sm' },
+          ].map((stat, idx) => (
+            <div key={idx} className={cn("border rounded-2xl p-4 flex items-center justify-between", stat.color)}>
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-450 block tracking-wider font-heading">
+                  {stat.label}
+                </span>
+                <span className="text-xl font-black text-slate-850 block">
+                  {stat.value}
+                </span>
+              </div>
+              <stat.icon className="w-8 h-8 opacity-45" />
+            </div>
+          ))}
+        </div>
+
+        {/* TABLE */}
+        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-450 bg-slate-50/50">
+                  <th className="py-4 px-6">Learner Account</th>
+                  <th className="py-4 px-6 text-center">XP</th>
+                  <th className="py-4 px-6">Current Topic</th>
+                  <th className="py-4 px-6 text-center">Current Level</th>
+                  <th className="py-4 px-6 text-center">Current Module</th>
+                  <th className="py-4 px-6 text-center">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-slate-400 text-xs italic">
+                      Loading learners...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-rose-400 text-xs italic">
+                      {error}
+                    </td>
+                  </tr>
+                ) : filteredLearners.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-slate-400 text-xs italic">
+                      No matching learners found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLearners.map((learner) => {
+                    const isCrew = learner.role === 'CREW';
+                    const isComplete = learner.isPlatformComplete;
+
+                    const rowBg = isComplete
+                      ? "bg-emerald-50/60 hover:bg-emerald-50"
+                      : isCrew
+                        ? "bg-amber-50/40 hover:bg-amber-50/70"
+                        : "hover:bg-slate-50";
+
+                    const avatarBg = isComplete
+                      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                      : isCrew
+                        ? "bg-amber-100 text-amber-700 border-amber-200"
+                        : "bg-indigo-50 text-indigo-650 border-indigo-100";
+
+                    const nameColor = isComplete
+                      ? "text-emerald-800"
+                      : "text-slate-800";
+
+                    return (
+                      <tr
+                        key={learner.id}
+                        className={cn("transition-colors", rowBg)}
+                      >
+                        {/* Name, Email & Badge */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3.5">
+                            <div className={cn(
+                              "w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs border flex-shrink-0",
+                              avatarBg
+                            )}>
+                              {getInitials(learner.name)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={cn(
+                                  "font-extrabold transition-colors",
+                                  nameColor
+                                )}>
+                                  {learner.name}
+                                </span>
+                                {isCrew && (
+                                  <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black bg-amber-100 text-amber-700 border border-amber-200 uppercase leading-none">
+                                    Crew
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-slate-400 text-[10px] block mt-0.5 font-bold">
+                                {learner.email}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* XP */}
+                        <td className="py-4 px-6 text-center">
+                          <span className="text-amber-600 font-black">
+                            {learner.xp}
+                          </span>
+                        </td>
+
+                        {/* Current Topic */}
+                        <td className="py-4 px-6">
+                          <span className="text-slate-600 font-semibold">
+                            {learner.currentTopic ?? '—'}
+                          </span>
+                        </td>
+
+                        {/* Current Level */}
+                        <td className="py-4 px-6 text-center">
+                          {learner.currentLevel ? (
+                            <span className={cn(
+                              "px-2.5 py-1 rounded-xl text-[9px] font-black border uppercase tracking-wider whitespace-nowrap",
+                              learner.currentLevel === 'BEGINNER'
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                : learner.currentLevel === 'INTERMEDIATE'
+                                  ? "bg-cyan-50 text-cyan-600 border-cyan-100"
+                                  : "bg-indigo-50 text-indigo-650 border-indigo-100"
+                            )}>
+                              {learner.currentLevel}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 text-[9px] font-bold">—</span>
+                          )}
+                        </td>
+
+                        {/* Current Module */}
+                        <td className="py-4 px-6 text-center">
+                          <span className="text-slate-600 font-semibold">
+                            {learner.currentModuleName ?? (isComplete ? 'Completed' : '—')}
+                          </span>
+                          {learner.currentModuleOrder !== null && (
+                            <span className="text-slate-400 text-[9px] block mt-0.5 font-bold">
+                              #{learner.currentModuleOrder + 1}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Progress */}
+                        <td className="py-4 px-6 text-center">
+                          <span className={cn(
+                            "font-black",
+                            isComplete ? "text-emerald-600" : "text-slate-600"
+                          )}>
+                            {learner.completedModulesCount} / {learner.totalModulesCount}
+                          </span>
+                          {isComplete && (
+                            <span className="ml-1.5 inline-flex items-center text-[8px] font-black text-emerald-600 bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-0.5 uppercase">
+                              Complete
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

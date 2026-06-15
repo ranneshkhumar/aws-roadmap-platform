@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, Role } from '../../generated/prisma/client.js';
+import { User, Role, ModuleLevel } from '../../generated/prisma/client.js';
+
+const LEVEL_ORDER: Record<ModuleLevel, number> = {
+  [ModuleLevel.BEGINNER]: 0,
+  [ModuleLevel.INTERMEDIATE]: 1,
+  [ModuleLevel.ADVANCED]: 2,
+};
 
 @Injectable()
 export class UsersService {
@@ -32,25 +38,65 @@ export class UsersService {
   }
 
   async findAllLearners() {
-    const users = await this.prisma.user.findMany({
-      orderBy: { xp: 'desc' },
-      include: {
-        progress: {
-          where: { status: 'COMPLETED' },
-          select: { id: true },
+    const [users, totalModulesCount] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { role: { in: [Role.CREW, Role.ENTHUSIAST] } },
+        orderBy: { xp: 'desc' },
+        include: {
+          progress: {
+            where: { status: { in: ['COMPLETED', 'UNLOCKED'] } },
+            select: {
+              status: true,
+              module: {
+                select: {
+                  name: true,
+                  level: true,
+                  orderIndex: true,
+                  topic: { select: { name: true, orderIndex: true } },
+                },
+              },
+            },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.module.count(),
+    ]);
 
-    return users.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      xp: u.xp,
-      role: u.role,
-      level: calculateLearnerLevel(u.xp),
-      completedCount: u.progress.length,
-    }));
+    return users.map((u) => {
+      const completedModulesCount = u.progress.filter(
+        (p) => p.status === 'COMPLETED',
+      ).length;
+
+      const activeRow = u.progress
+        .filter((p) => p.status === 'UNLOCKED')
+        .sort((a, b) => {
+          const topicDiff =
+            (a.module.topic?.orderIndex ?? 0) -
+            (b.module.topic?.orderIndex ?? 0);
+          if (topicDiff !== 0) return topicDiff;
+
+          const levelDiff =
+            LEVEL_ORDER[a.module.level!] - LEVEL_ORDER[b.module.level!];
+          if (levelDiff !== 0) return levelDiff;
+
+          return a.module.orderIndex - b.module.orderIndex;
+        })[0];
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        xp: u.xp,
+        currentTopic: activeRow?.module.topic?.name ?? null,
+        currentLevel: activeRow?.module.level ?? null,
+        currentModuleName: activeRow?.module.name ?? null,
+        currentModuleOrder: activeRow?.module.orderIndex ?? null,
+        completedModulesCount,
+        totalModulesCount,
+        isPlatformComplete: completedModulesCount === totalModulesCount,
+      };
+    });
   }
 
   async findLearnerDetail(id: string) {
