@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Module, ModuleLevel } from '../../generated/prisma/client.js';
+import { Module, ModuleLevel, Prisma } from '../../generated/prisma/client.js';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ReorderModulesDto } from './dto/reorder-modules.dto';
@@ -14,28 +14,19 @@ export class ModulesService {
   ) {}
 
   /**
-   * Finds the insertion point at the end of a level within a topic,
-   * shifts all later modules up by 1, and returns the orderIndex to assign.
+   * Finds the next sequential orderIndex within a topic.
+   * Queries across ALL levels in the topic and returns max + 1.
+   * Never renumbers or shifts existing modules.
    */
-  private async insertAtEndOfLevel(
+  private async getNextOrderIndex(
+    tx: Prisma.TransactionClient,
     topicId: string | null,
-    level: ModuleLevel | null,
   ): Promise<number> {
-    const lastInLevel = await this.prisma.module.findFirst({
-      where: { topicId: topicId ?? null, level: level ?? null },
+    const last = await tx.module.findFirst({
+      where: { topicId: topicId ?? null },
       orderBy: { orderIndex: 'desc' },
     });
-    const insertAt = lastInLevel ? lastInLevel.orderIndex + 1 : 0;
-
-    await this.prisma.module.updateMany({
-      where: {
-        topicId: topicId ?? null,
-        orderIndex: { gte: insertAt },
-      },
-      data: { orderIndex: { increment: 1 } },
-    });
-
-    return insertAt;
+    return last ? last.orderIndex + 1 : 0;
   }
 
   async findAll(): Promise<Module[]> {
@@ -104,9 +95,9 @@ export class ModulesService {
     const module = await this.prisma.$transaction(async (tx) => {
       let orderIndex = dto.orderIndex;
       if (orderIndex === undefined || orderIndex === null) {
-        orderIndex = await this.insertAtEndOfLevel(
+        orderIndex = await this.getNextOrderIndex(
+          tx,
           dto.topicId ?? null,
-          (dto.level as ModuleLevel) ?? null,
         );
       }
 

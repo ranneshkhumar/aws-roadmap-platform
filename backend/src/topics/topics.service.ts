@@ -8,39 +8,10 @@ import { ModuleLevel } from '../../generated/prisma/client.js';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { ReorderTopicsDto } from './dto/reorder-topics.dto';
-import { ProgressService } from '../progress/progress.service';
-
-const MODULE_DEFAULTS: Record<
-  ModuleLevel,
-  {
-    tier: string;
-    xpPoints: number;
-    levelOffset: number;
-  }
-> = {
-  [ModuleLevel.BEGINNER]: {
-    tier: 'Fundamentals',
-    xpPoints: 0,
-    levelOffset: 0,
-  },
-  [ModuleLevel.INTERMEDIATE]: {
-    tier: 'Associate',
-    xpPoints: 0,
-    levelOffset: 1,
-  },
-  [ModuleLevel.ADVANCED]: {
-    tier: 'Professional',
-    xpPoints: 0,
-    levelOffset: 2,
-  },
-};
 
 @Injectable()
 export class TopicsService {
-  constructor(
-    private prisma: PrismaService,
-    private progressService: ProgressService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async findAll() {
     return this.prisma.topic.findMany({
@@ -79,46 +50,16 @@ export class TopicsService {
     const topicOrderIndex = maxTopic ? maxTopic.orderIndex + 1 : 0;
 
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
-        const topic = await tx.topic.create({
-          data: {
-            name: dto.name,
-            slug,
-            description: dto.description ?? '',
-            orderIndex: topicOrderIndex,
-          },
-        });
-
-        const modules = await Promise.all(
-          Object.values(ModuleLevel).map((level) => {
-            const defaults = MODULE_DEFAULTS[level];
-            return tx.module.create({
-              data: {
-                name: `${dto.name} ${level.charAt(0) + level.slice(1).toLowerCase()}`,
-                slug: `${slug}-${level.toLowerCase()}`,
-                description: '',
-                tier: defaults.tier,
-                xpPoints: defaults.xpPoints,
-                orderIndex: topicOrderIndex * 3 + defaults.levelOffset,
-                topicId: topic.id,
-                level,
-              },
-            });
-          }),
-        );
-
-        return { ...topic, modules };
+      const topic = await this.prisma.topic.create({
+        data: {
+          name: dto.name,
+          slug,
+          description: dto.description ?? '',
+          orderIndex: topicOrderIndex,
+        },
       });
 
-      for (const mod of result.modules) {
-        await this.progressService.retroactiveUnlockForNewModule(
-          mod.id,
-          result.id,
-          mod.level,
-        );
-      }
-
-      return result;
+      return { ...topic, modules: [] };
     } catch (error) {
       if (error.code === 'P2002') {
         const target = error.meta?.target;
