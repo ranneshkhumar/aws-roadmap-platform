@@ -14,6 +14,56 @@ import {
 const CURRICULA = [
   { topic: AWS_TOPIC, modules: AWS_MODULES },
   { topic: DEVOPS_TOPIC, modules: DEVOPS_MODULES },
+  {
+    topic: {
+      slug: 'mock-topic-3',
+      name: 'Taj Mahal Level',
+      description: 'Explore the Taj Mahal Wonder of the World.',
+      orderIndex: 3,
+      theme: 'CRYSTAL' as const,
+    },
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-4',
+      name: 'Great Wall Level',
+      description: 'Explore the Great Wall of China Wonder of the World.',
+      orderIndex: 4,
+      theme: 'FORGE' as const,
+    },
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-5',
+      name: 'Mayan Temple Level',
+      description: 'Explore the Chichen Itza Wonder of the World.',
+      orderIndex: 5,
+      theme: 'TECH' as const,
+    },
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-6',
+      name: 'Machu Picchu Level',
+      description: 'Explore the Machu Picchu Wonder of the World.',
+      orderIndex: 6,
+      theme: 'HARBOR' as const,
+    },
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-7',
+      name: 'Colossus Statue Level',
+      description: 'Explore the Colossus of Rhodes Wonder of the World.',
+      orderIndex: 7,
+      theme: 'CITADEL' as const,
+    },
+    modules: [],
+  },
 ];
 
 const { Pool } = pkg;
@@ -109,6 +159,7 @@ async function main() {
         name: curriculum.topic.name,
         description: curriculum.topic.description,
         orderIndex: curriculum.topic.orderIndex,
+        theme: curriculum.topic.theme,
       },
       create: curriculum.topic,
     });

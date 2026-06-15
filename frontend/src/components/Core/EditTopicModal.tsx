@@ -3,24 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { TopicData } from '@/services/api';
+import type { TopicData, TopicTheme } from '@/services/api';
 
 interface EditTopicModalProps {
   isOpen: boolean;
   topic: TopicData | null;
   onClose: () => void;
-  onSubmit: (id: string, name: string, description: string) => Promise<void>;
+  onSubmit: (id: string, name: string, description: string, theme: TopicTheme) => Promise<void>;
 }
 
 export default function EditTopicModal({ isOpen, topic, onClose, onSubmit }: EditTopicModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [theme, setTheme] = useState<TopicTheme>('TECH');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (topic) {
       setName(topic.name);
       setDescription(topic.description || '');
+      setTheme(topic.theme || 'TECH');
     }
   }, [topic]);
 
@@ -29,7 +31,7 @@ export default function EditTopicModal({ isOpen, topic, onClose, onSubmit }: Edi
     if (!topic || !name.trim()) return;
     setSubmitting(true);
     try {
-      await onSubmit(topic.id, name.trim(), description.trim());
+      await onSubmit(topic.id, name.trim(), description.trim(), theme);
       onClose();
     } catch (err) {
       // Error handled by parent
@@ -59,7 +61,7 @@ export default function EditTopicModal({ isOpen, topic, onClose, onSubmit }: Edi
           Edit Topic
         </h3>
         <p className="text-[10px] text-slate-550 mb-5 leading-normal">
-          Rename this topic or update its description. Module names will update automatically.
+          Rename this topic, update its description, or configure its island template. Module names will update automatically.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
@@ -82,6 +84,21 @@ export default function EditTopicModal({ isOpen, topic, onClose, onSubmit }: Edi
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-extrabold text-slate-550 block">Island Theme Template</label>
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as TopicTheme)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+            >
+              <option value="TECH">Tech Island (AWS, Cloud Foundations)</option>
+              <option value="FORGE">Forge Island (DevOps, CI/CD, Automation)</option>
+              <option value="CITADEL">Citadel Island (Security, IAM, Governance)</option>
+              <option value="HARBOR">Harbor Island (Kubernetes, Containers, Infrastructure)</option>
+              <option value="CRYSTAL">Crystal Island (AI, ML, Data Science)</option>
+            </select>
           </div>
 
           <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100 mt-5">

@@ -1,6 +1,7 @@
 import {
   ModuleLevel,
   ProgressStatus,
+  TopicTheme,
 } from '../../../generated/prisma/client.js';
 
 export class ModuleSummaryDto {
@@ -30,4 +31,5 @@ export class TopicDetailDto {
   orderIndex: number;
   modules: ModuleSummaryDto[];
   progress: TopicProgressDto;
+  theme: TopicTheme;
 }

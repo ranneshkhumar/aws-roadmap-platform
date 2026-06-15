@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { TopicTheme } from '../../../generated/prisma/client.js';
 
 export class CreateTopicDto {
   @IsString()
@@ -8,4 +9,8 @@ export class CreateTopicDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsEnum(TopicTheme)
+  theme?: TopicTheme;
 }

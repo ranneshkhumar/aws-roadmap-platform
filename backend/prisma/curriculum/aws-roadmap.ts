@@ -32,6 +32,7 @@ export const TOPIC = {
   slug: 'aws-core',
   description: 'Master the core AWS services and cloud architecture patterns.',
   orderIndex: 0,
+  theme: 'TECH' as const,
 };
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const;

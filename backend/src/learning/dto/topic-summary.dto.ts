@@ -1,3 +1,5 @@
+import { TopicTheme } from '../../../generated/prisma/client.js';
+
 export class TopicSummaryDto {
   id: string;
   slug: string;
@@ -8,6 +10,7 @@ export class TopicSummaryDto {
   completedModules: number;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
   unlocked: boolean;
+  theme: TopicTheme;
 }
 
 export class TopicListResponseDto {

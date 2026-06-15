@@ -24,7 +24,7 @@ const LEVEL_ORDER: Record<ModuleLevel, number> = {
 
 @Injectable()
 export class LearningService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private async findFirstBeginnerModuleOfFirstTopic() {
     const firstTopic = await this.prisma.topic.findFirst({
@@ -67,12 +67,7 @@ export class LearningService {
       status = 'IN_PROGRESS';
     }
 
-    let unlocked = false;
-    if (topicOrderIndex === 0) {
-      unlocked = true;
-    } else {
-      unlocked = previousTopicStatus === 'COMPLETED';
-    }
+    let unlocked = true;
 
     return { status, unlocked, totalModules, completedModules };
   }
@@ -87,6 +82,7 @@ export class LearningService {
           name: true,
           description: true,
           orderIndex: true,
+          theme: true,
         },
       }),
       this.prisma.userModuleProgress.findMany({
@@ -146,6 +142,7 @@ export class LearningService {
         completedModules: result.completedModules,
         status: result.status,
         unlocked: result.unlocked,
+        theme: topic.theme,
       });
 
       previousStatus = result.status;
@@ -163,6 +160,7 @@ export class LearningService {
         name: true,
         description: true,
         orderIndex: true,
+        theme: true,
       },
     });
 
@@ -318,6 +316,7 @@ export class LearningService {
       orderIndex: topic.orderIndex,
       modules: moduleSummaries,
       progress,
+      theme: topic.theme,
     };
   }
 

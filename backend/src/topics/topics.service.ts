@@ -56,6 +56,7 @@ export class TopicsService {
           slug,
           description: dto.description ?? '',
           orderIndex: topicOrderIndex,
+          theme: dto.theme ?? 'TECH',
         },
       });
 
@@ -98,6 +99,7 @@ export class TopicsService {
           data: {
             name: dto.name,
             description: dto.description,
+            theme: dto.theme,
           },
         });
 

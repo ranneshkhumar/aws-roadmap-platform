@@ -292,6 +292,8 @@ export interface LearningTopicProgress {
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
+export type TopicTheme = 'TECH' | 'FORGE' | 'CITADEL' | 'HARBOR' | 'CRYSTAL';
+
 export interface LearningTopicDetail {
   slug: string;
   name: string;
@@ -299,6 +301,7 @@ export interface LearningTopicDetail {
   orderIndex: number;
   modules: LearningModuleSummary[];
   progress: LearningTopicProgress;
+  theme: TopicTheme;
 }
 
 export interface TopicSummary {
@@ -311,6 +314,7 @@ export interface TopicSummary {
   completedModules: number;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
   unlocked: boolean;
+  theme: TopicTheme;
 }
 
 export const learningService = {
@@ -341,16 +345,19 @@ export interface TopicData {
   description: string;
   orderIndex: number;
   modules: ModuleData[];
+  theme: TopicTheme;
 }
 
 export interface CreateTopicDto {
   name: string;
   description?: string;
+  theme?: TopicTheme;
 }
 
 export interface UpdateTopicDto {
   name?: string;
   description?: string;
+  theme?: TopicTheme;
 }
 
 export const topicsService = {

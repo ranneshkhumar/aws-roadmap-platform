@@ -68,7 +68,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const { moduleId } = use(params);
   
   // State controllers
-  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; points: number; iconName: string; topicSlug: string } | null>(null);
+  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; points: number; iconName: string; topicSlug: string; topicName: string } | null>(null);
   const [slides, setSlides] = useState<any[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   
@@ -123,13 +123,15 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
         const dbId = activeModule.id;
 
-        // Resolve topicSlug for post-quiz redirect
+        // Resolve topicSlug and topicName for navigation & header info
         let topicSlug = '';
+        let topicName = '';
         if (activeModule.topicId) {
           const topics = await learningService.getTopicList();
           const matchedTopic = topics.find((t) => t.id === activeModule.topicId);
           if (matchedTopic) {
             topicSlug = matchedTopic.slug;
+            topicName = matchedTopic.name;
           }
         }
 
@@ -181,6 +183,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
           dbId: activeModule.id,
           iconName: getIconForSlug(activeModule.slug),
           topicSlug,
+          topicName,
         });
 
         // Map backend slides content
@@ -306,7 +309,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
             </p>
           </div>
           <Link
-            href="/roadmap"
+            href={module?.topicSlug ? `/learn/${module.topicSlug}` : '/learn'}
             className="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs px-6 py-3 rounded-xl shadow-md border border-slate-800 transition-all font-heading"
           >
             Return to Journey Map
@@ -443,16 +446,30 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
           <div className="flex items-center gap-3">
             <Link 
-              href="/roadmap"
+              href={module?.topicSlug ? `/learn/${module.topicSlug}` : '/learn'}
               className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors flex items-center justify-center"
             >
               <Icons.ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
-                {module.level} Path
-              </span>
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight leading-tight font-heading">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                  {module.level} Path
+                </span>
+                {module?.topicSlug && module?.topicName && (
+                  <>
+                    <span className="text-slate-300 text-[9px] font-bold">|</span>
+                    <Link
+                      href={`/learn/${module.topicSlug}`}
+                      className="text-indigo-650 font-bold bg-indigo-50/80 hover:bg-indigo-100/80 px-2 py-0.5 rounded-md text-[9px] tracking-tight transition-all duration-200 cursor-pointer"
+                      title="Back to Topic Roadmap"
+                    >
+                      Topic: {module.topicName}
+                    </Link>
+                  </>
+                )}
+              </div>
+              <h1 className="text-base font-extrabold text-slate-900 tracking-tight leading-tight font-heading mt-0.5">
                 {module.name}
               </h1>
             </div>
@@ -525,18 +542,37 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                         >
                           Previous Page
                         </button>
-                        <button
-                          onClick={() => {
-                            if (module?.topicSlug) {
-                              router.push(`/learn/${module.topicSlug}`);
-                            } else {
-                              router.push('/learn');
-                            }
-                          }}
-                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-md transition-all active:scale-[0.98]"
-                        >
-                          Return to Journey Map
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                setLoading(true);
+                                const reviewData = await progressService.getQuizReview(module.dbId);
+                                setQuizReview(reviewData);
+                                setStep('review');
+                              } catch (e) {
+                                console.error(e);
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs shadow-md transition-all active:scale-[0.98]"
+                          >
+                            Review Quiz
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (module?.topicSlug) {
+                                router.push(`/learn/${module.topicSlug}`);
+                              } else {
+                                router.push('/learn');
+                              }
+                            }}
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-md transition-all active:scale-[0.98]"
+                          >
+                            Return to Journey Map
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (

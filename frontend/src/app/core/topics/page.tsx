@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as Icons from 'lucide-react';
-import { topicsService, type TopicData } from '@/services/api';
+import { topicsService, type TopicData, type TopicTheme } from '@/services/api';
 import { ApiError } from '@/services/apiClient';
 import { authService } from '@/services/auth.service';
 import TopicCard from '@/components/Core/TopicCard';
@@ -58,8 +58,8 @@ export default function TopicsDirectoryPage() {
     showToast('Topic created successfully');
   };
 
-  const handleUpdateTopic = async (id: string, name: string, description: string) => {
-    await topicsService.updateTopic(id, { name, description });
+  const handleUpdateTopic = async (id: string, name: string, description: string, theme: TopicTheme) => {
+    await topicsService.updateTopic(id, { name, description, theme });
     await loadTopics();
   };
 

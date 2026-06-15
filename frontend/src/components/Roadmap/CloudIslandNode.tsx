@@ -56,8 +56,8 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
       <motion.div
         className={cn(
           "absolute bottom-[-20px] left-1/2 -translate-x-1/2 w-32 h-4 rounded-full blur-lg pointer-events-none transition-all duration-300",
-          status === 'current' 
-            ? "bg-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.6)]" 
+          status === 'current'
+            ? "bg-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.6)]"
             : status === 'completed'
               ? "bg-emerald-400/25 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
               : "bg-slate-500/15"
@@ -131,8 +131,8 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
         )}
       >
         {/* Layered 3D Premium Cloud Island SVG */}
-        <svg 
-          viewBox="0 0 180 140" 
+        <svg
+          viewBox="0 0 180 140"
           className={cn(
             "w-44 h-36 absolute inset-0 z-10 pointer-events-none transition-all duration-300",
             status === 'completed' && "drop-shadow-[0_12px_22px_rgba(16,185,129,0.3)]",
@@ -146,7 +146,7 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
               <stop offset="0%" stopColor="#10B981" /> {/* emerald-500 */}
               <stop offset="100%" stopColor="#047857" /> {/* emerald-700 */}
             </linearGradient>
-            
+
             {/* Dirt/Soil Gradients */}
             <linearGradient id={`soil-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#78350F" /> {/* amber-900 */}
@@ -172,36 +172,36 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
           {status === 'locked' ? (
             <g>
               {/* Cloud Body for Locked state */}
-              <path 
+              <path
                 d="M 45,95 
                    C 15,95 10,70 30,55 
                    C 10,35 35,15 65,20 
                    C 80,5 115,10 125,30 
                    C 150,20 165,45 155,70 
                    C 165,85 145,95 125,95 
-                   Z" 
-                fill="#E2E8F0" 
-                stroke="#CBD5E1" 
+                   Z"
+                fill="#E2E8F0"
+                stroke="#CBD5E1"
                 strokeWidth="1.5"
                 opacity="0.85"
               />
               {/* Inner highlight */}
-              <path 
-                d="M 50,85 C 60,88 90,88 100,83 C 110,88 140,88 145,81 C 150,71 150,58 140,53 C 135,43 115,48 110,48 C 100,38 80,43 75,51 C 65,48 50,55 53,68 C 47,73 47,81 50,85 Z" 
-                fill="#FFFFFF" 
-                opacity="0.45" 
+              <path
+                d="M 50,85 C 60,88 90,88 100,83 C 110,88 140,88 145,81 C 150,71 150,58 140,53 C 135,43 115,48 110,48 C 100,38 80,43 75,51 C 65,48 50,55 53,68 C 47,73 47,81 50,85 Z"
+                fill="#FFFFFF"
+                opacity="0.45"
               />
             </g>
           ) : (
             <g>
               {/* 1. FLOATING ROCK BASE (Bottom layer) */}
               {/* Jagged rocky core pointing downwards */}
-              <path 
+              <path
                 d="M 30,73 
                    L 150,73 
                    L 130,105 
                    L 90,132 
-                   L 50,105 Z" 
+                   L 50,105 Z"
                 fill={`url(#rock-grad-${id})`}
                 stroke="#334155"
                 strokeWidth="1.2"
@@ -213,34 +213,34 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
 
               {/* 2. GRASS LAYER (Middle layer) */}
               {/* Earthen rim line for depth */}
-              <ellipse 
-                cx="90" 
-                cy="73" 
-                rx="62" 
-                ry="17" 
-                fill={`url(#soil-grad-${id})`} 
+              <ellipse
+                cx="90"
+                cy="73"
+                rx="62"
+                ry="17"
+                fill={`url(#soil-grad-${id})`}
               />
               {/* Lush Green Grass surface */}
-              <ellipse 
-                cx="90" 
-                cy="72" 
-                rx="60" 
-                ry="16" 
-                fill={`url(#grass-grad-${id})`} 
+              <ellipse
+                cx="90"
+                cy="72"
+                rx="60"
+                ry="16"
+                fill={`url(#grass-grad-${id})`}
               />
               {/* Grass Border */}
-              <ellipse 
-                cx="90" 
-                cy="72" 
-                rx="60" 
-                ry="16" 
-                fill="none" 
-                stroke="#047857" 
-                strokeWidth="1.5" 
+              <ellipse
+                cx="90"
+                cy="72"
+                rx="60"
+                ry="16"
+                fill="none"
+                stroke="#047857"
+                strokeWidth="1.5"
               />
-              
+
               {/* 3. CLOUD LAYER (Top layer sitting on the grass) */}
-              <path 
+              <path
                 d="M 50,70 
                    C 32,70 28,55 40,45 
                    C 28,35 42,20 65,25 
@@ -248,18 +248,18 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
                    C 135,18 147,38 137,58 
                    C 147,70 132,82 115,82 
                    C 98,86 78,86 65,82 
-                   C 52,82 50,76 50,70 Z" 
+                   C 52,82 50,76 50,70 Z"
                 fill={`url(#cloud-base-grad-${id})`}
                 stroke={status === 'current' ? '#22D3EE' : '#CBD5E1'}
                 strokeWidth={status === 'current' ? '1.5' : '1'}
                 opacity="0.95"
               />
-              
+
               {/* Cloud Layer Inner Highlights */}
-              <path 
-                d="M 55,62 C 60,65 85,65 92,60 C 100,65 125,65 130,59 C 135,50 135,38 126,34 C 122,25 104,29 99,29 C 90,20 72,24 67,31 C 58,28 45,34 48,46 C 42,50 42,57 45,61 Z" 
-                fill="#FFFFFF" 
-                opacity="0.45" 
+              <path
+                d="M 55,62 C 60,65 85,65 92,60 C 100,65 125,65 130,59 C 135,50 135,38 126,34 C 122,25 104,29 99,29 C 90,20 72,24 67,31 C 58,28 45,34 48,46 C 42,50 42,57 45,61 Z"
+                fill="#FFFFFF"
+                opacity="0.45"
               />
             </g>
           )}
@@ -296,7 +296,7 @@ export const CloudIslandNode: React.FC<CloudIslandNodeProps> = ({
             </span>
 
             {/* Module Name */}
-            <span 
+            <span
               className={cn(
                 "text-[10px] font-black tracking-tight mt-0.5 leading-snug max-w-[110px] font-sans",
                 status === 'completed' ? "text-[#065F46]" : "text-slate-900"

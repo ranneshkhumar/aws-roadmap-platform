@@ -109,6 +109,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   const [modules, setModules] = useState<any[]>([]);
   const [moduleStates, setModuleStates] = useState<Record<string, 'completed' | 'current' | 'locked'>>({});
   const [xp, setXp] = useState<number>(0);
+  const [topicName, setTopicName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
 
@@ -160,6 +161,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
           }
         });
 
+        setTopicName(topicDetail.name);
         setModules(mappedModules);
         setModuleStates(states);
         setXp(progress.currentXP);
@@ -222,7 +224,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [loading]);
 
   // Split modules list by level dynamically
   const beginnerList = modules.filter((m) => m.level === 'Beginner');
@@ -313,6 +315,20 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   const isActiveIntermediate = activeTab === 'intermediate';
   const isActiveAdvanced = activeTab === 'advanced';
 
+  const scrollTarget = (topValue: number) => {
+    if (mapContainerRef.current) {
+      mapContainerRef.current.scrollTo({ top: topValue, behavior: 'smooth' });
+    }
+    const element = mapContainerRef.current;
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const targetY = rect.top + scrollTop + topValue;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+  };
+
+
   // Ambient Particles definition for sky depth
   const particles = [
     { id: 'p1', left: '15%', top: '350px', duration: 18, delay: 0 },
@@ -335,137 +351,71 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   const intermediateCardTop = intermediateStartY - 140;
   const advancedCardTop = advancedStartY - 160;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen w-screen bg-gradient-to-b from-sky-100 via-sky-50 to-white flex items-center justify-center relative overflow-hidden font-sans select-none z-50">
+        <div className="absolute top-[15%] left-[10%] w-64 h-64 bg-white/70 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-[20%] right-[10%] w-72 h-72 bg-white/60 rounded-full blur-[90px] pointer-events-none" />
+        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-sky-200/40 rounded-full blur-[70px] pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
+          <span className="text-xs text-slate-500 font-bold tracking-wider uppercase animate-pulse font-heading">
+            Preparing Your Journey...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-screen w-screen relative overflow-hidden select-none font-sans text-slate-800 bg-transparent">
 
       {/* Floating Top Panel Container (Stacks header and level selector dynamically) */}
       <div className="absolute top-4 left-6 right-6 z-50 flex flex-col gap-4 pointer-events-none">
 
-        {/* 1. FIXED TOP HEADER PANEL (Matches screenshot) */}
-        <header className="bg-white/95 border border-slate-200/50 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md w-full pointer-events-auto">
-          {/* Left Side: Current Mission Info */}
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            {/* Green circle with > icon */}
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-              <Icons.ChevronRight className="w-6 h-6 stroke-[3]" />
-            </div>
-            <div className="flex flex-col text-slate-800">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
-                CONTINUE YOUR JOURNEY
+        {/* Back to Topics Button & Centered Completion Progress Bar */}
+        <div className="w-full flex justify-between items-center pointer-events-none">
+          <Link
+            href="/learn"
+            className="flex items-center gap-1.5 px-4.5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 font-heading font-black text-xs cursor-pointer pointer-events-auto flex-shrink-0"
+            title="Back to Topics"
+          >
+            <Icons.ChevronLeft className="w-4 h-4 stroke-[3]" />
+            Back to Topics
+          </Link>
+
+          {/* Centered overall completion progress bar */}
+          {modules.length > 0 && (
+            <div className="flex items-center gap-3.5 bg-white/95 border border-slate-200/50 shadow-[0_10px_30px_rgba(15,23,42,0.06)] rounded-full px-5 py-2.5 pointer-events-auto backdrop-blur-md">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest leading-none font-heading">
+                  Topic Progress
+                </span>
+                <span className="text-[11px] font-black text-slate-700 font-heading mt-0.5 whitespace-nowrap">
+                  {totalCompleted} / {modules.length} Modules
+                </span>
+              </div>
+              <div className="w-24 sm:w-40 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/30 relative shadow-inner">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                  style={{ width: `${Math.round((totalCompleted / modules.length) * 100)}%` }}
+                />
+              </div>
+              <span className="text-xs font-black text-slate-900 font-heading">
+                {Math.round((totalCompleted / modules.length) * 100)}%
               </span>
-              <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5 animate-pulse">
-                Current Mission: {activeNode.name}
-              </span>
-              <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
-                <span className="flex items-center gap-1 text-cyan-600">
-                  <Icons.CheckCircle2 className="w-3.5 h-3.5" /> Progress: {totalCompleted} / {modules.length} Modules
-                </span>
-
-
-                {role === 'core' && (
-                  <>
-                    <span className="text-slate-200">|</span>
-                    <Link
-                      href="/core/topics"
-                      className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
-                    >
-                      <Icons.Sliders className="w-3.5 h-3.5" /> CMS Dashboard
-                    </Link>
-                  </>
-                )}
-                {role === 'crew' && (
-                  <>
-                    <span className="text-slate-200">|</span>
-                    <Link
-                      href="/core/learners"
-                      className="flex items-center gap-1 text-indigo-650 hover:underline font-bold"
-                    >
-                      <Icons.Users className="w-3.5 h-3.5" /> Learners Directory
-                    </Link>
-                  </>
-                )}
-              </div>
             </div>
-          </div>
+          )}
 
-          {/* Right Side: Reward & Resume */}
-          <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-            {/* Total XP Badge */}
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <Icons.Trophy className="w-5 h-5 text-indigo-600 fill-current" />
-              <div>
-                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                  TOTAL SCORE
-                </span>
-                <span className="text-xs font-black text-slate-855 block leading-tight">
-                  {xp} XP
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <Icons.Zap className="w-5 h-5 text-amber-500 fill-current animate-pulse" />
-              <div>
-                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                  MISSION REWARD
-                </span>
-                <span className="text-xs font-black text-slate-855 block leading-tight">
-                  +{activeNode.points || 50} XP
-                </span>
-              </div>
-            </div>
-
-            {/* Level badge */}
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <Icons.Layers className="w-5 h-5 text-emerald-600" />
-              <div>
-                <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider block font-heading">
-                  LEVEL
-                </span>
-                <span className="text-xs font-black text-slate-855 block leading-tight">
-                  {displayLevel}
-                </span>
-              </div>
-            </div>
-
-           
-                
-             
-
-            <button
-              onClick={handleLogout}
-              className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-500 rounded-2xl transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
-              title="Logout Simulator session"
-            >
-              <Icons.LogOut className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => {
-                // Scroll to active node
-                const activeCoord = coordinates[activeNode.id];
-                if (activeCoord && mapContainerRef.current) {
-                  const scrollPos = activeCoord.y - window.innerHeight / 2 + 200;
-                  mapContainerRef.current.scrollTo({ top: Math.max(0, scrollPos), behavior: 'smooth' });
-                }
-                // Open active node drawer
-                setSelectedModuleId(activeNode.id);
-                setIsDrawerOpen(true);
-              }}
-              className="bg-[#00cba9] hover:bg-[#00bda0] text-white font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading"
-            >
-              Resume Learning
-            </button>
-          </div>
-        </header>
+          {/* Empty spacer to balance the back button for absolute centering */}
+          <div className="w-[124px] hidden md:block" />
+        </div>
 
         {/* 2. LEVEL NAVIGATION BADGES (PILLS) WITH PREMIUM GRADIENTS */}
         <div className="flex justify-center gap-3 pointer-events-auto">
           <button
             onClick={() => {
-              if (mapContainerRef.current) {
-                mapContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-              }
+              scrollTarget(0);
               setActiveTab('beginner');
             }}
             className={cn(
@@ -486,9 +436,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
 
           <button
             onClick={() => {
-              if (mapContainerRef.current) {
-                mapContainerRef.current.scrollTo({ top: intermediateStartY - 120, behavior: 'smooth' });
-              }
+              scrollTarget(intermediateStartY - 120);
               setActiveTab('intermediate');
             }}
             className={cn(
@@ -513,9 +461,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
 
           <button
             onClick={() => {
-              if (mapContainerRef.current) {
-                mapContainerRef.current.scrollTo({ top: advancedStartY - 140, behavior: 'smooth' });
-              }
+              scrollTarget(advancedStartY - 140);
               setActiveTab('advanced');
             }}
             className={cn(
@@ -549,16 +495,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
         {/* Animated Sky background */}
         <SkyBackground />
 
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 backdrop-blur-[2px] z-30 pointer-events-none">
-            <div className="flex flex-col items-center gap-3 bg-white/95 border border-slate-200/50 shadow-xl rounded-3xl p-6 pointer-events-auto">
-              <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-              <span className="text-xs text-slate-500 font-bold tracking-wider uppercase">
-                Loading Cloud Roadmap...
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Loader removed as it is now handled as a full-page view */}
 
         {/* Board container shifted down to not collide with header at scroll top */}
         <div

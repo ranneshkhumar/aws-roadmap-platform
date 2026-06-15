@@ -42,14 +42,23 @@ model User {
   attempts QuizAttempt[]
 }
 
+enum TopicTheme {
+  TECH
+  FORGE
+  CITADEL
+  HARBOR
+  CRYSTAL
+}
+
 model Topic {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String   @unique
-  description String   @default("")
-  orderIndex  Int      @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String     @unique
+  description String     @default("")
+  orderIndex  Int        @unique
+  theme       TopicTheme @default(TECH)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   modules Module[]
 }

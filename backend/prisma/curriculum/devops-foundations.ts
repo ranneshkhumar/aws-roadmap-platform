@@ -12,6 +12,7 @@ export const TOPIC = {
   description:
     'Master modern DevOps practices, containerization, CI/CD pipelines, and cloud-native infrastructure automation.',
   orderIndex: 1,
+  theme: 'FORGE' as const,
 };
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const;

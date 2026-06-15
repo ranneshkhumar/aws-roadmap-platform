@@ -200,3 +200,30 @@
     rgb(255, 255, 255) 75%
   );
 }
+
+/* Learn Page V2 Dial Button Animations */
+@keyframes slowHover {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-slow-hover {
+  animation: slowHover 3s ease-in-out infinite;
+}
+
+@keyframes capBob {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-cap-bob {
+  animation: capBob 2s ease-in-out infinite;
+}
