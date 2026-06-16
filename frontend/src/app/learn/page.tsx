@@ -144,14 +144,11 @@ export default function LearnPage() {
           {/* Cloud Background from Roadmaps */}
           <SkyBackground />
 
-          <div className="flex flex-col items-center gap-4 bg-white/95 border border-slate-200/50 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-md rounded-3xl p-8 z-10 pointer-events-auto">
+          <div className="flex flex-col items-center gap-4 z-10 pointer-events-auto">
             <div className="relative flex items-center justify-center">
               {/* Outer pulsing ring */}
               <div className="absolute w-12 h-12 rounded-full bg-sky-500/10 animate-ping" />
-              {/* Inner glass circle containing spinner */}
-              <div className="w-16 h-16 rounded-full bg-white/80 border border-slate-200/60 flex items-center justify-center shadow-md relative">
-                <Loader2 className="w-8 h-8 text-sky-500 animate-spin stroke-[2.5]" />
-              </div>
+              <Loader2 className="w-10 h-10 text-sky-500 animate-spin stroke-[2.5]" />
             </div>
             <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase animate-pulse font-heading">
               Loading Learning Tracks...

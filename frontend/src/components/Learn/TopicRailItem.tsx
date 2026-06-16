@@ -7,13 +7,7 @@ import { cn } from '@/lib/utils';
 import type { TopicSummary } from '@/services/api';
 import { CloudProgress } from './CloudProgress';
 
-const THEME_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  TECH: Cloud,
-  FORGE: Wrench,
-  CITADEL: Shield,
-  HARBOR: Anchor,
-  CRYSTAL: Sparkles,
-};
+
 
 interface TopicRailItemProps {
   topic: TopicSummary;
@@ -23,7 +17,7 @@ interface TopicRailItemProps {
 export const TopicRailItem: React.FC<TopicRailItemProps> = ({ topic, status }) => {
   const router = useRouter();
   const isLocked = status === 'LOCKED';
-  const IconComponent = THEME_ICON[topic.theme] || BookOpen;
+  const IconComponent = BookOpen;
 
   const cloudPct = useMemo(() => {
     if (topic.totalModules === 0) return 0;

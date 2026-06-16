@@ -14,6 +14,7 @@ import { QuizEntry } from '@/components/Roadmap/QuizEntry';
 import { QuizReview, QuizReviewData } from '@/components/Roadmap/QuizReview';
 import { ModuleCompletionBanner } from '@/components/Roadmap/ModuleCompletionBanner';
 import QuizSubmitModal from '@/components/Roadmap/QuizSubmitModal';
+import { SkyBackground } from '@/components/Roadmap/SkyBackground';
 
 interface Confetti {
   x: number;
@@ -281,10 +282,15 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-          <span className="text-xs text-slate-405 font-bold uppercase animate-pulse">
+      <div className="min-h-screen w-screen bg-gradient-to-b from-[#bae6fd] via-[#e0f2fe] to-white flex items-center justify-center relative overflow-hidden font-sans select-none z-50">
+        <SkyBackground />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center">
+            {/* Outer pulsing ring */}
+            <div className="absolute w-12 h-12 rounded-full bg-sky-500/10 animate-ping" />
+            <Icons.Loader2 className="w-10 h-10 text-sky-500 animate-spin stroke-[2.5]" />
+          </div>
+          <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase animate-pulse font-heading">
             Loading learning path...
           </span>
         </div>
