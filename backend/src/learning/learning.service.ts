@@ -22,9 +22,14 @@ const LEVEL_ORDER: Record<ModuleLevel, number> = {
   [ModuleLevel.ADVANCED]: 2,
 };
 
+import { ProgressService } from '../progress/progress.service';
+
 @Injectable()
 export class LearningService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private progressService: ProgressService,
+  ) { }
 
   private async findFirstBeginnerModuleOfFirstTopic() {
     const firstTopic = await this.prisma.topic.findFirst({
@@ -168,43 +173,7 @@ export class LearningService {
       throw new NotFoundException(`Topic with slug "${slug}" not found`);
     }
 
-    // Check topic unlock status
-    if (topic.orderIndex > 0) {
-      const previousTopic = await this.prisma.topic.findFirst({
-        where: { orderIndex: topic.orderIndex - 1 },
-        select: { id: true },
-      });
-
-      if (previousTopic) {
-        const previousModules = await this.prisma.module.findMany({
-          where: { topicId: previousTopic.id },
-          select: { id: true },
-        });
-
-        const previousModuleIds = previousModules.map((m) => m.id);
-        const previousProgress = await this.prisma.userModuleProgress.findMany({
-          where: { userId, moduleId: { in: previousModuleIds } },
-          select: { moduleId: true, status: true },
-        });
-
-        const previousProgressMap = new Map<string, ProgressStatus>();
-        for (const p of previousProgress) {
-          previousProgressMap.set(p.moduleId, p.status);
-        }
-
-        const previousResult = this.computeTopicProgress(
-          0, // orderIndex doesn't matter for status computation
-          previousModuleIds,
-          previousProgressMap,
-        );
-
-        if (previousResult.status !== 'COMPLETED') {
-          throw new ForbiddenException(
-            'Topic is locked. Complete the previous topic first.',
-          );
-        }
-      }
-    }
+    const statuses = await this.progressService.getModuleStatusesForUser(userId);
 
     const modules = await this.prisma.module.findMany({
       where: { topicId: topic.id },
@@ -219,6 +188,24 @@ export class LearningService {
         orderIndex: true,
       },
     });
+
+    const sortedModules = [...modules].sort((a, b) => {
+      const levelA = a.level ? LEVEL_ORDER[a.level] : 3;
+      const levelB = b.level ? LEVEL_ORDER[b.level] : 3;
+      if (levelA !== levelB) return levelA - levelB;
+      return a.orderIndex - b.orderIndex;
+    });
+
+    // Check topic unlock status: Topic is locked if its first module is locked
+    const firstModuleOfTopic = sortedModules[0];
+    if (firstModuleOfTopic) {
+      const firstStatus = statuses.get(firstModuleOfTopic.id) || 'LOCKED';
+      if (firstStatus === 'LOCKED') {
+        throw new ForbiddenException(
+          'Topic is locked. Complete the previous topic first.',
+        );
+      }
+    }
 
     const moduleIds = modules.map((m) => m.id);
 
@@ -257,27 +244,9 @@ export class LearningService {
       questionCountMap.set(qc.moduleId, qc._count.id);
     }
 
-    // Determine the first Beginner module of the first Topic for fallback unlock
-    const firstBeginnerModule =
-      await this.findFirstBeginnerModuleOfFirstTopic();
-
-    const sortedModules = [...modules].sort((a, b) => {
-      const levelA = a.level ? LEVEL_ORDER[a.level] : 3;
-      const levelB = b.level ? LEVEL_ORDER[b.level] : 3;
-      if (levelA !== levelB) return levelA - levelB;
-      return a.orderIndex - b.orderIndex;
-    });
-
     const moduleSummaries: ModuleSummaryDto[] = sortedModules.map((mod) => {
       const progress = progressMap.get(mod.id);
-      let status: ProgressStatus;
-      if (progress) {
-        status = progress.status;
-      } else if (firstBeginnerModule?.id === mod.id) {
-        status = 'UNLOCKED';
-      } else {
-        status = 'LOCKED';
-      }
+      const status = statuses.get(mod.id) || 'LOCKED';
       return {
         slug: mod.slug,
         name: mod.name,
@@ -294,8 +263,9 @@ export class LearningService {
     });
 
     const statusOnlyMap = new Map<string, ProgressStatus>();
-    for (const [id, data] of progressMap) {
-      statusOnlyMap.set(id, data.status);
+    for (const mod of sortedModules) {
+      const status = statuses.get(mod.id) || 'LOCKED';
+      statusOnlyMap.set(mod.id, status);
     }
     const topicProgressResult = this.computeTopicProgress(
       topic.orderIndex,
@@ -321,137 +291,84 @@ export class LearningService {
   }
 
   async findContinueModule(userId: string): Promise<ContinueResponseDto> {
-    const [topics, allProgress] = await Promise.all([
-      this.prisma.topic.findMany({
-        orderBy: { orderIndex: 'asc' },
-        select: { id: true, slug: true, name: true, orderIndex: true },
-      }),
-      this.prisma.userModuleProgress.findMany({
-        where: { userId },
-        select: { moduleId: true, status: true },
-      }),
-    ]);
-
-    const progressMap = new Map<string, string>();
-    for (const p of allProgress) {
-      progressMap.set(p.moduleId, p.status);
-    }
-
-    const topicMap = new Map<
-      string,
-      { slug: string; name: string; orderIndex: number }
-    >();
-    for (const t of topics) {
-      topicMap.set(t.id, {
-        slug: t.slug,
-        name: t.name,
-        orderIndex: t.orderIndex,
-      });
-    }
-
-    const topicIds = topics.map((t) => t.id);
-
-    const allModules = await this.prisma.module.findMany({
-      where: { topicId: { in: topicIds } },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        level: true,
-        tier: true,
-        topicId: true,
-        orderIndex: true,
+    const sortedModules = await this.prisma.module.findMany({
+      include: {
+        topic: { select: { slug: true, name: true, orderIndex: true } },
       },
     });
 
-    const sortedModules = [...allModules].sort((a, b) => {
-      const topicA = topicMap.get(a.topicId || '');
-      const topicB = topicMap.get(b.topicId || '');
+    if (sortedModules.length === 0) {
+      return { module: null };
+    }
 
-      const topicOrderA = topicA?.orderIndex ?? 0;
-      const topicOrderB = topicB?.orderIndex ?? 0;
-
-      if (topicOrderA !== topicOrderB) {
-        return topicOrderA - topicOrderB;
-      }
+    // Sort sortedModules canonically
+    sortedModules.sort((a, b) => {
+      const topicOrderA = a.topic?.orderIndex ?? 0;
+      const topicOrderB = b.topic?.orderIndex ?? 0;
+      if (topicOrderA !== topicOrderB) return topicOrderA - topicOrderB;
 
       const levelA = a.level ? LEVEL_ORDER[a.level] : 3;
       const levelB = b.level ? LEVEL_ORDER[b.level] : 3;
       if (levelA !== levelB) return levelA - levelB;
+
       return a.orderIndex - b.orderIndex;
     });
 
-    // Find the first UNLOCKED module that is not COMPLETED
-    const nextModule = sortedModules.find((mod) => {
-      const status = progressMap.get(mod.id);
-      if (status === 'COMPLETED') return false;
-      if (status === 'UNLOCKED') return true;
-      return false;
-    });
+    const statuses = await this.progressService.getModuleStatusesForUser(userId);
+
+    // Find the first module with status 'UNLOCKED'
+    const nextModule = sortedModules.find((mod) => statuses.get(mod.id) === 'UNLOCKED');
 
     if (!nextModule) {
-      // Fallback: first Beginner module of first Topic (for new learners with no progress)
-      const firstBeginnerModule =
-        await this.findFirstBeginnerModuleOfFirstTopic();
-      if (!firstBeginnerModule) {
+      // Check if all are completed (platform complete)
+      const allCompleted = sortedModules.every((mod) => statuses.get(mod.id) === 'COMPLETED');
+      if (allCompleted) {
         return { module: null };
       }
 
-      const fallbackStatus = progressMap.get(firstBeginnerModule.id);
-      if (fallbackStatus === 'COMPLETED') {
-        return { module: null };
+      // Fallback: first Beginner module of first Topic
+      const firstMod = sortedModules[0];
+      if (firstMod) {
+        const [slideCount, questionCount] = await Promise.all([
+          this.prisma.learningSlide.count({ where: { moduleId: firstMod.id } }),
+          this.prisma.quizQuestion.count({ where: { moduleId: firstMod.id } }),
+        ]);
+
+        return {
+          module: {
+            slug: firstMod.slug,
+            name: firstMod.name,
+            description: firstMod.description,
+            level: firstMod.level ?? ModuleLevel.BEGINNER,
+            tier: firstMod.tier,
+            topicSlug: firstMod.topic?.slug || '',
+            topicName: firstMod.topic?.name || '',
+            slideCount,
+            questionCount,
+          },
+        };
       }
 
-      const fallbackMod = allModules.find(
-        (m) => m.id === firstBeginnerModule.id,
-      );
-      if (!fallbackMod) {
-        return { module: null };
-      }
-
-      const topic = topicMap.get(fallbackMod.topicId || '');
-      const [slideCount, questionCount] = await Promise.all([
-        this.prisma.learningSlide.count({
-          where: { moduleId: fallbackMod.id },
-        }),
-        this.prisma.quizQuestion.count({ where: { moduleId: fallbackMod.id } }),
-      ]);
-
-      return {
-        module: {
-          slug: fallbackMod.slug,
-          name: fallbackMod.name,
-          description: fallbackMod.description,
-          level: fallbackMod.level ?? ModuleLevel.BEGINNER,
-          tier: fallbackMod.tier,
-          topicSlug: topic?.slug || '',
-          topicName: topic?.name || '',
-          slideCount,
-          questionCount,
-        },
-      };
+      return { module: null };
     }
-
-    const topic = topicMap.get(nextModule.topicId || '');
 
     const [slideCount, questionCount] = await Promise.all([
       this.prisma.learningSlide.count({ where: { moduleId: nextModule.id } }),
       this.prisma.quizQuestion.count({ where: { moduleId: nextModule.id } }),
     ]);
 
-    const continueModule: ContinueModuleDto = {
-      slug: nextModule.slug,
-      name: nextModule.name,
-      description: nextModule.description,
-      level: nextModule.level ?? ModuleLevel.BEGINNER,
-      tier: nextModule.tier,
-      topicSlug: topic?.slug || '',
-      topicName: topic?.name || '',
-      slideCount,
-      questionCount,
+    return {
+      module: {
+        slug: nextModule.slug,
+        name: nextModule.name,
+        description: nextModule.description,
+        level: nextModule.level ?? ModuleLevel.BEGINNER,
+        tier: nextModule.tier,
+        topicSlug: nextModule.topic?.slug || '',
+        topicName: nextModule.topic?.name || '',
+        slideCount,
+        questionCount,
+      },
     };
-
-    return { module: continueModule };
   }
 }

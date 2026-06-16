@@ -295,11 +295,11 @@ describe('Progress Reconciliation (e2e)', () => {
       expect(completedCount).toBe(2);
     });
 
-    it('should not modify C status in database', async () => {
+    it('should have no progress record for C in database (derived dynamically)', async () => {
       const progressC = await prisma.userModuleProgress.findUnique({
         where: { userId_moduleId: { userId: learnerId, moduleId: moduleC.id } },
       });
-      expect(progressC!.status).toBe('UNLOCKED');
+      expect(progressC).toBeNull();
     });
   });
 

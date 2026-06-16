@@ -115,11 +115,7 @@ export class ModulesService {
       });
     });
 
-    await this.progressService.retroactiveUnlockForNewModule(
-      module.id,
-      dto.topicId ?? null,
-      (dto.level as ModuleLevel) ?? null,
-    );
+    this.progressService.invalidateCache();
 
     return module;
   }
@@ -147,10 +143,12 @@ export class ModulesService {
       data.slug = await this.generateUniqueSlug(dto.name);
     }
 
-    return this.prisma.module.update({
+    const updated = await this.prisma.module.update({
       where: { id },
       data,
     });
+    this.progressService.invalidateCache();
+    return updated;
   }
 
   /**
@@ -170,6 +168,8 @@ export class ModulesService {
     await this.prisma.module.delete({
       where: { id },
     });
+
+    this.progressService.invalidateCache();
 
     return { success: true };
   }
@@ -219,6 +219,8 @@ export class ModulesService {
     await this.prisma.$transaction(updateOperations, {
       timeout: 15000,
     });
+
+    this.progressService.invalidateCache();
 
     return { success: true };
   }

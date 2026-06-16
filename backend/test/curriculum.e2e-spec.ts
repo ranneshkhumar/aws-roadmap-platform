@@ -287,56 +287,7 @@ describe('Curriculum Module (e2e)', () => {
     });
   });
 
-  describe('Duplication & Relations', () => {
-    let sourceModuleId: string;
-    let slideId: string;
-    let questionId: string;
 
-    beforeAll(async () => {
-      // Create a module and add slide/question directly
-      const sourceModule = await prisma.module.create({
-        data: {
-          name: 'Original Module',
-          description: 'Desc',
-          tier: 'Professional',
-          xpPoints: 300,
-
-          orderIndex: 10,
-          slug: 'original-module',
-        },
-      });
-      sourceModuleId = sourceModule.id;
-      testModuleIds.push(sourceModuleId);
-
-      const slide = await prisma.learningSlide.create({
-        data: {
-          moduleId: sourceModuleId,
-          title: 'Original Slide',
-          layoutType: 'hero',
-          bullets: ['Point A', 'Point B'],
-          orderIndex: 0,
-        },
-      });
-      slideId = slide.id;
-
-      const question = await prisma.quizQuestion.create({
-        data: {
-          moduleId: sourceModuleId,
-          question: 'True or False?',
-          optionA: 'True',
-          optionB: 'False',
-          optionC: 'N/A',
-          optionD: 'N/A',
-          correctAnswer: 'A',
-          explanation: 'Because it is.',
-          orderIndex: 0,
-        },
-      });
-      questionId = question.id;
-    });
-
-
-  });
 
   describe('Reordering', () => {
     it('should update orderIndex values using a transaction', async () => {
@@ -403,21 +354,46 @@ describe('Curriculum Module (e2e)', () => {
 
   describe('Hard Delete with Soft Delete Readiness', () => {
     it('should delete a module and cascade delete slides and questions', async () => {
-      // Find a module with slides/questions
-      const testModule = await prisma.module.findFirst({
-        where: {
-          name: 'Original Module Copy',
+      // Create a temporary module with slides/questions
+      const tempModule = await prisma.module.create({
+        data: {
+          name: 'Temp Cascade Delete Module',
+          description: 'Desc',
+          tier: 'Fundamentals',
+          xpPoints: 100,
+          orderIndex: 999,
+          slug: 'temp-cascade-delete-module',
         },
-        include: {
-          slides: true,
-          questions: true,
+      });
+      testModuleIds.push(tempModule.id);
+
+      const tempSlide = await prisma.learningSlide.create({
+        data: {
+          moduleId: tempModule.id,
+          title: 'Temp Slide',
+          layoutType: 'hero',
+          bullets: ['Point A'],
+          orderIndex: 0,
         },
       });
 
-      expect(testModule).not.toBeNull();
-      const moduleId = testModule!.id;
-      const slideId = testModule!.slides[0].id;
-      const questionId = testModule!.questions[0].id;
+      const tempQuestion = await prisma.quizQuestion.create({
+        data: {
+          moduleId: tempModule.id,
+          question: 'Cascade delete test question?',
+          optionA: 'True',
+          optionB: 'False',
+          optionC: 'N/A',
+          optionD: 'N/A',
+          correctAnswer: 'A',
+          explanation: 'Because it is.',
+          orderIndex: 0,
+        },
+      });
+
+      const moduleId = tempModule.id;
+      const slideId = tempSlide.id;
+      const questionId = tempQuestion.id;
 
       await request(app.getHttpServer())
         .delete(`/modules/${moduleId}`)

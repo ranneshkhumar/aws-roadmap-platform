@@ -34,15 +34,13 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
 
     prisma = app.get(PrismaService);
 
-    await prisma.userModuleProgress.deleteMany({
-      where: { user: { email: { in: [coreEmail, learnerEmail] } } },
-    });
-    await prisma.module.deleteMany({
-      where: { topic: { slug: { startsWith: 'retro-unlock-' } } },
-    });
-    await prisma.topic.deleteMany({
-      where: { slug: { startsWith: 'retro-unlock-' } },
-    });
+    await prisma.userModuleProgress.deleteMany({});
+    await prisma.quizAttemptAnswer.deleteMany({});
+    await prisma.quizAttempt.deleteMany({});
+    await prisma.learningSlide.deleteMany({});
+    await prisma.quizQuestion.deleteMany({});
+    await prisma.module.deleteMany({});
+    await prisma.topic.deleteMany({});
     await prisma.user.deleteMany({
       where: { email: { in: [coreEmail, learnerEmail] } },
     });
@@ -258,8 +256,8 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
       expect(await getProgress(newMod.id)).toBe('UNLOCKED');
     });
 
-    it('Intermediate remains UNLOCKED (no regression)', async () => {
-      expect(await getProgress(intermediate1.id)).toBe('UNLOCKED');
+    it('Intermediate is LOCKED (because it comes after new unlocked Beginner)', async () => {
+      expect(await getProgress(intermediate1.id)).toBe('LOCKED');
     });
 
     it('Beginner modules remain COMPLETED', async () => {
@@ -267,15 +265,8 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
       expect(await getProgress(beginner2.id)).toBe('COMPLETED');
     });
 
-    it('no topic re-locks', async () => {
-      const allModules = await prisma.module.findMany({
-        where: { topicId: topic1Id },
-        select: { id: true },
-      });
-      for (const mod of allModules) {
-        const status = await getProgress(mod.id);
-        expect(status).not.toBe('LOCKED');
-      }
+    it('topic first module remains COMPLETED (topic remains unlocked)', async () => {
+      expect(await getProgress(beginner1.id)).toBe('COMPLETED');
     });
   });
 
@@ -305,8 +296,8 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
       newMod = await createModule('S3 New Beginner', topic1Id, ModuleLevel.BEGINNER);
     }, 30000);
 
-    it('new Beginner module is UNLOCKED (learner has progress in level)', async () => {
-      expect(await getProgress(newMod.id)).toBe('UNLOCKED');
+    it('new Beginner module is LOCKED (predecessor is not completed)', async () => {
+      expect(await getProgress(newMod.id)).toBe('LOCKED');
     });
 
     it('Intermediate remains LOCKED (no regression)', async () => {
@@ -353,25 +344,21 @@ describe('Retroactive Unlock — Post-Implementation Learner Validation (e2e)', 
       new3 = await createModule('S4 New3', topic1Id, ModuleLevel.BEGINNER);
     }, 30000);
 
-    it('all 3 new modules are UNLOCKED', async () => {
+    it('only the first new module is UNLOCKED, subsequent are LOCKED', async () => {
       expect(await getProgress(new1.id)).toBe('UNLOCKED');
-      expect(await getProgress(new2.id)).toBe('UNLOCKED');
-      expect(await getProgress(new3.id)).toBe('UNLOCKED');
+      expect(await getProgress(new2.id)).toBe('LOCKED');
+      expect(await getProgress(new3.id)).toBe('LOCKED');
     });
 
     it('original module remains COMPLETED', async () => {
       expect(await getProgress(m1.id)).toBe('COMPLETED');
     });
 
-    it('no re-locks in the topic', async () => {
-      const allModules = await prisma.module.findMany({
-        where: { topicId: topic1Id },
-        select: { id: true },
-      });
-      for (const mod of allModules) {
-        const status = await getProgress(mod.id);
-        expect(status).not.toBe('LOCKED');
-      }
+    it('progression follows sequential order', async () => {
+      expect(await getProgress(m1.id)).toBe('COMPLETED');
+      expect(await getProgress(new1.id)).toBe('UNLOCKED');
+      expect(await getProgress(new2.id)).toBe('LOCKED');
+      expect(await getProgress(new3.id)).toBe('LOCKED');
     });
   });
 

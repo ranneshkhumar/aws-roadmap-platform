@@ -9,9 +9,14 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { ReorderTopicsDto } from './dto/reorder-topics.dto';
 
+import { ProgressService } from '../progress/progress.service';
+
 @Injectable()
 export class TopicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private progressService: ProgressService,
+  ) {}
 
   async findAll() {
     return this.prisma.topic.findMany({
@@ -59,6 +64,8 @@ export class TopicsService {
           theme: dto.theme ?? 'TECH',
         },
       });
+
+      this.progressService.invalidateCache();
 
       return { ...topic, modules: [] };
     } catch (error) {
@@ -121,17 +128,15 @@ export class TopicsService {
               },
             });
           }
-
-          return tx.topic.findUnique({
-            where: { id },
-            include: { modules: { orderBy: { orderIndex: 'asc' } } },
-          });
         }
 
-        return tx.topic.findUnique({
+        const res = await tx.topic.findUnique({
           where: { id },
           include: { modules: { orderBy: { orderIndex: 'asc' } } },
         });
+
+        this.progressService.invalidateCache();
+        return res;
       });
     } catch (error) {
       if (error.code === 'P2002') {
@@ -174,6 +179,8 @@ export class TopicsService {
       }
 
       await tx.topic.delete({ where: { id } });
+
+      this.progressService.invalidateCache();
 
       return { success: true };
     });
@@ -268,6 +275,8 @@ export class TopicsService {
           data: { orderIndex: m.final },
         });
       }
+
+      this.progressService.invalidateCache();
 
       return { success: true };
     });

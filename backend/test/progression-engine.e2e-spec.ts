@@ -357,20 +357,19 @@ describe('Progression Engine — Full Topic/Level Flow (e2e)', () => {
       expect(completed.length).toBe(4);
     });
 
-    it('M5 has exactly one UNLOCKED record', async () => {
+    it('M5 has no record in the database (since status is derived dynamically)', async () => {
       const m5Progress = await prisma.userModuleProgress.findUnique({
         where: { userId_moduleId: { userId: learnerId, moduleId: m5Id } },
       });
-      expect(m5Progress).not.toBeNull();
-      expect(m5Progress!.status).toBe('UNLOCKED');
+      expect(m5Progress).toBeNull();
     });
 
     it('no spurious progress records were created', async () => {
       const allProgress = await prisma.userModuleProgress.findMany({
         where: { userId: learnerId },
       });
-      // 4 COMPLETED + 1 UNLOCKED (M5) = 5 total
-      expect(allProgress.length).toBe(5);
+      // 4 COMPLETED + 0 UNLOCKED (M5) = 4 total
+      expect(allProgress.length).toBe(4);
     });
   });
 });

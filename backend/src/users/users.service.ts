@@ -38,50 +38,60 @@ export class UsersService {
   }
 
   async findAllLearners() {
-    const [users, totalModulesCount, totalTopicsCount] = await Promise.all([
+    const [users, topics, modules, totalModulesCount, totalTopicsCount] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: { in: [Role.CREW, Role.ENTHUSIAST] } },
         orderBy: { xp: 'desc' },
         include: {
           progress: {
-            where: { status: { in: ['COMPLETED', 'UNLOCKED'] } },
+            where: { status: 'COMPLETED' },
             select: {
-              status: true,
-              module: {
-                select: {
-                  name: true,
-                  level: true,
-                  orderIndex: true,
-                  topic: { select: { name: true, orderIndex: true } },
-                },
-              },
+              moduleId: true,
             },
           },
+        },
+      }),
+      this.prisma.topic.findMany({
+        orderBy: { orderIndex: 'asc' },
+        select: { id: true, name: true, orderIndex: true },
+      }),
+      this.prisma.module.findMany({
+        select: {
+          id: true,
+          name: true,
+          level: true,
+          orderIndex: true,
+          topicId: true,
         },
       }),
       this.prisma.module.count(),
       this.prisma.topic.count(),
     ]);
 
+    const topicOrderMap = new Map<string, number>();
+    const topicMap = new Map<string, { name: string; orderIndex: number }>();
+    topics.forEach((t) => {
+      topicOrderMap.set(t.id, t.orderIndex);
+      topicMap.set(t.id, { name: t.name, orderIndex: t.orderIndex });
+    });
+
+    const sortedModules = modules.sort((a, b) => {
+      const topicOrderA = a.topicId ? (topicOrderMap.get(a.topicId) ?? 0) : 0;
+      const topicOrderB = b.topicId ? (topicOrderMap.get(b.topicId) ?? 0) : 0;
+      if (topicOrderA !== topicOrderB) return topicOrderA - topicOrderB;
+
+      const levelA = a.level ? LEVEL_ORDER[a.level] : 3;
+      const levelB = b.level ? LEVEL_ORDER[b.level] : 3;
+      if (levelA !== levelB) return levelA - levelB;
+
+      return a.orderIndex - b.orderIndex;
+    });
+
     return users.map((u) => {
-      const completedModulesCount = u.progress.filter(
-        (p) => p.status === 'COMPLETED',
-      ).length;
+      const completedModulesCount = u.progress.length;
+      const completedSet = new Set(u.progress.map((p) => p.moduleId));
 
-      const activeRow = u.progress
-        .filter((p) => p.status === 'UNLOCKED')
-        .sort((a, b) => {
-          const topicDiff =
-            (a.module.topic?.orderIndex ?? 0) -
-            (b.module.topic?.orderIndex ?? 0);
-          if (topicDiff !== 0) return topicDiff;
-
-          const levelDiff =
-            LEVEL_ORDER[a.module.level!] - LEVEL_ORDER[b.module.level!];
-          if (levelDiff !== 0) return levelDiff;
-
-          return a.module.orderIndex - b.module.orderIndex;
-        })[0];
+      const firstUncompleted = sortedModules.find((m) => !completedSet.has(m.id));
 
       return {
         id: u.id,
@@ -89,10 +99,10 @@ export class UsersService {
         email: u.email,
         role: u.role,
         xp: u.xp,
-        currentTopic: activeRow?.module.topic?.name ?? null,
-        currentLevel: activeRow?.module.level ?? null,
-        currentModuleName: activeRow?.module.name ?? null,
-        currentModuleOrder: activeRow?.module.orderIndex ?? null,
+        currentTopic: firstUncompleted && firstUncompleted.topicId ? (topicMap.get(firstUncompleted.topicId)?.name ?? null) : null,
+        currentLevel: firstUncompleted ? firstUncompleted.level : null,
+        currentModuleName: firstUncompleted ? firstUncompleted.name : null,
+        currentModuleOrder: firstUncompleted ? firstUncompleted.orderIndex : null,
         completedModulesCount,
         totalModulesCount,
         totalTopicsCount,

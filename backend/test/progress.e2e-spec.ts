@@ -39,6 +39,7 @@ describe('Progress Module (e2e)', () => {
     await prisma.learningSlide.deleteMany({});
     await prisma.quizQuestion.deleteMany({});
     await prisma.module.deleteMany({});
+    await prisma.topic.deleteMany({});
     await prisma.user.deleteMany({
       where: {
         email: {
@@ -243,11 +244,11 @@ describe('Progress Module (e2e)', () => {
       expect(progressA!.score).toBe(2);
       expect(progressA!.xpEarned).toBe(100);
 
-      // Verify that Module B is now UNLOCKED
+      // Verify that no database record is created for Module B (derived dynamically)
       const progressB = await prisma.userModuleProgress.findUnique({
         where: { userId_moduleId: { userId: learnerId, moduleId: moduleBId } },
       });
-      expect(progressB!.status).toBe('UNLOCKED');
+      expect(progressB).toBeNull();
     });
 
     it('should apply XP Anti-Farming: subsequent attempts award 0 XP and keep highest score', async () => {

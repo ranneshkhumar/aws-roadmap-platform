@@ -2,46 +2,77 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+  TOPIC as AWS_TOPIC,
+  CURRICULUM_MODULES as AWS_MODULES,
+} from '../prisma/curriculum/aws-roadmap';
+import {
+  TOPIC as DEVOPS_TOPIC,
+  CURRICULUM_MODULES as DEVOPS_MODULES,
+} from '../prisma/curriculum/devops-foundations';
 
-function generateQuizQuestionsForModule(moduleId: string, moduleName: string) {
-  return [
-    {
-      question: `What is the primary architectural purpose of ${moduleName}?`,
-      options: [
-        `Automated provisioning and system backups.`,
-        `Failsafe identity access and resources governance.`,
-        `Low latency, secure file sharing.`,
-        `Dynamic horizontal resource scaling.`,
-      ],
-      answerIndex: 1,
-      explanation: `${moduleName} provides policies and configurations specifically targeting cloud architecture structure, security limits, or resource orchestration.`,
+const CURRICULA = [
+  { topic: AWS_TOPIC, modules: AWS_MODULES },
+  { topic: DEVOPS_TOPIC, modules: DEVOPS_MODULES },
+  {
+    topic: {
+      slug: 'mock-topic-3',
+      name: 'Taj Mahal Level',
+      description: 'Explore the Taj Mahal Wonder of the World.',
+      orderIndex: 3,
+      theme: 'CRYSTAL' as const,
     },
-    {
-      question: `Which of the following is considered a core operational best practice for ${moduleName}?`,
-      options: [
-        `Granting root admin controls to all API callers.`,
-        `Configuring open endpoints without authorization blocks.`,
-        `Applying the principle of least privilege.`,
-        `Avoiding access key rotations to preserve runtime consistency.`,
-      ],
-      answerIndex: 2,
-      explanation: `The principle of least privilege ensures users/roles only obtain the minimum permissions required for their actions, minimizing breach radius.`,
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-4',
+      name: 'Great Wall Level',
+      description: 'Explore the Great Wall of China Wonder of the World.',
+      orderIndex: 4,
+      theme: 'FORGE' as const,
     },
-    {
-      question: `How does ${moduleName} handle unexpected service interruptions or failures?`,
-      options: [
-        `By scaling down the entire fleet to prevent storage locks.`,
-        `By utilizing automated multi-AZ standby failover replication.`,
-        `By triggering manual shell restart triggers.`,
-        `By transferring files to local backup endpoints.`,
-      ],
-      answerIndex: 1,
-      explanation: `AWS uses Multi-Availability Zone redundancy patterns to execute failover updates synchronously when primary databases or computing nodes crash.`,
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-5',
+      name: 'Mayan Temple Level',
+      description: 'Explore the Chichen Itza Wonder of the World.',
+      orderIndex: 5,
+      theme: 'TECH' as const,
     },
-  ];
-}
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-6',
+      name: 'Machu Picchu Level',
+      description: 'Explore the Machu Picchu Wonder of the World.',
+      orderIndex: 6,
+      theme: 'HARBOR' as const,
+    },
+    modules: [],
+  },
+  {
+    topic: {
+      slug: 'mock-topic-7',
+      name: 'Colossus Statue Level',
+      description: 'Explore the Colossus of Rhodes Wonder of the World.',
+      orderIndex: 7,
+      theme: 'CITADEL' as const,
+    },
+    modules: [],
+  },
+];
+
+const PLACEHOLDER_SLUGS = [
+  'module-a',
+  'module-a-inter',
+  'module-a-adv',
+  'moduble-b',
+  'module-c',
+];
 
 describe('Database Seeder', () => {
   let prisma: PrismaService;
@@ -60,6 +91,15 @@ describe('Database Seeder', () => {
   });
 
   it('seeds demo data', async () => {
+    console.log('Cleaning database...');
+    await prisma.userModuleProgress.deleteMany({});
+    await prisma.quizAttemptAnswer.deleteMany({});
+    await prisma.quizAttempt.deleteMany({});
+    await prisma.learningSlide.deleteMany({});
+    await prisma.quizQuestion.deleteMany({});
+    await prisma.module.deleteMany({});
+    await prisma.topic.deleteMany({});
+
     console.log('Seeding database...');
 
     // 1. Seed Demo Users
@@ -112,120 +152,138 @@ describe('Database Seeder', () => {
     }
     console.log('Demo users seeded successfully!');
 
-    // 2. Seed Modules
-    const modulesFilePath = path.join(__dirname, '../prisma/modules.json');
-    if (!fs.existsSync(modulesFilePath)) {
-      throw new Error(
-        'modules.json not found! Please run node prisma/extract.js first.',
-      );
-    }
+    // 2. Delete placeholder modules (and their dependents)
+    const placeholders = await prisma.module.findMany({
+      where: { slug: { in: PLACEHOLDER_SLUGS } },
+      select: { id: true },
+    });
+    const placeholderIds = placeholders.map((p) => p.id);
 
-    const rawModules = JSON.parse(fs.readFileSync(modulesFilePath, 'utf8'));
+    if (placeholderIds.length > 0) {
+      console.log(`Deleting ${placeholderIds.length} placeholder modules...`);
 
-    for (let i = 0; i < rawModules.length; i++) {
-      const m = rawModules[i];
-
-      // Map tier based on level
-      let tier = 'Fundamentals';
-      if (m.level === 'Intermediate') {
-        tier = 'Associate';
-      } else if (m.level === 'Advanced') {
-        tier = 'Professional';
-      }
-
-      const dbModule = await prisma.module.upsert({
-        where: { slug: m.id },
-        update: {
-          name: m.name,
-          description: m.description,
-          tier,
-          xpPoints: m.points || 100,
-
-          orderIndex: i,
-        },
-        create: {
-          name: m.name,
-          description: m.description,
-          tier,
-          xpPoints: m.points || 100,
-
-          orderIndex: i,
-          slug: m.id,
-        },
+      await prisma.quizAttemptAnswer.deleteMany({
+        where: { attempt: { moduleId: { in: placeholderIds } } },
       });
-
-      // Create Slides
+      await prisma.quizAttempt.deleteMany({
+        where: { moduleId: { in: placeholderIds } },
+      });
+      await prisma.userModuleProgress.deleteMany({
+        where: { moduleId: { in: placeholderIds } },
+      });
       await prisma.learningSlide.deleteMany({
-        where: { moduleId: dbModule.id },
+        where: { moduleId: { in: placeholderIds } },
       });
-
-      const slidesData = (m.learningContent || []).map(
-        (slide: any, slideIdx: number) => {
-          let layoutType = 'TEXT_ONLY';
-          if (slide.layoutType === 'text-image') {
-            layoutType = 'TEXT_IMAGE';
-          } else if (slide.layoutType === 'image-only') {
-            layoutType = 'IMAGE_ONLY';
-          }
-
-          return {
-            moduleId: dbModule.id,
-            title: slide.title || 'Slide Title',
-            layoutType,
-            imageUrl: slide.imageUrl || null,
-            bullets: slide.content || [],
-            orderIndex: slideIdx,
-          };
-        },
-      );
-
-      if (slidesData.length > 0) {
-        await prisma.learningSlide.createMany({
-          data: slidesData,
-        });
-      }
-
-      // Create Questions
       await prisma.quizQuestion.deleteMany({
-        where: { moduleId: dbModule.id },
+        where: { moduleId: { in: placeholderIds } },
+      });
+      await prisma.module.deleteMany({
+        where: { slug: { in: PLACEHOLDER_SLUGS } },
       });
 
-      // Use defined quizQuestions or fallback to template questions
-      let questionsPool = m.quizQuestions || [];
-      if (questionsPool.length === 0 && m.quiz) {
-        questionsPool.push(m.quiz);
-      }
-      if (questionsPool.length === 0) {
-        questionsPool = generateQuizQuestionsForModule(m.id, m.name);
-      }
-
-      const questionsData = questionsPool.map((q: any, qIdx: number) => {
-        const letters = ['A', 'B', 'C', 'D'];
-        const ansIdx = q.answerIndex !== undefined ? q.answerIndex : 0;
-        const correctAnswer = letters[ansIdx] || 'A';
-
-        return {
-          moduleId: dbModule.id,
-          question: q.question,
-          optionA: q.options[0] || 'Option A',
-          optionB: q.options[1] || 'Option B',
-          optionC: q.options[2] || 'Option C',
-          optionD: q.options[3] || 'Option D',
-          correctAnswer,
-          explanation: q.explanation || 'Explanation',
-          orderIndex: qIdx,
-        };
-      });
-
-      if (questionsData.length > 0) {
-        await prisma.quizQuestion.createMany({
-          data: questionsData,
-        });
-      }
+      console.log('Placeholder modules deleted.');
     }
 
-    console.log(
-      `Seeded ${rawModules.length} modules, their slides, and questions!`,
-    );
-  }, 60000);
+    // 3. Seed Curricula (Topics + Modules + Slides + Questions)
+    let slideTotal = 0;
+    let questionTotal = 0;
+    let moduleTotal = 0;
+
+    for (const curriculum of CURRICULA) {
+      const topic = await prisma.topic.upsert({
+        where: { slug: curriculum.topic.slug },
+        update: {
+          name: curriculum.topic.name,
+          description: curriculum.topic.description,
+          orderIndex: curriculum.topic.orderIndex,
+          theme: curriculum.topic.theme,
+        },
+        create: curriculum.topic,
+      });
+      console.log(`Topic "${topic.name}" (${topic.slug}) ready, id=${topic.id}`);
+
+      // Clean up modules no longer in this curriculum
+      const currentSlugs = new Set(curriculum.modules.map((m) => m.slug));
+      const existingModules = await prisma.module.findMany({
+        where: { topicId: topic.id },
+        select: { id: true, slug: true },
+      });
+      for (const existing of existingModules) {
+        if (!currentSlugs.has(existing.slug)) {
+          await prisma.quizAttemptAnswer.deleteMany({ where: { attempt: { moduleId: existing.id } } });
+          await prisma.quizAttempt.deleteMany({ where: { moduleId: existing.id } });
+          await prisma.userModuleProgress.deleteMany({ where: { moduleId: existing.id } });
+          await prisma.learningSlide.deleteMany({ where: { moduleId: existing.id } });
+          await prisma.quizQuestion.deleteMany({ where: { moduleId: existing.id } });
+          await prisma.module.delete({ where: { id: existing.id } });
+        }
+      }
+
+      for (const m of curriculum.modules) {
+        const dbModule = await prisma.module.upsert({
+          where: { slug: m.slug },
+          update: {
+            name: m.name,
+            description: m.description,
+            tier: m.tier,
+            xpPoints: m.xpPoints,
+            orderIndex: m.orderIndex,
+            topicId: topic.id,
+            level: m.level,
+          },
+          create: {
+            slug: m.slug,
+            name: m.name,
+            description: m.description,
+            tier: m.tier,
+            xpPoints: m.xpPoints,
+            orderIndex: m.orderIndex,
+            topicId: topic.id,
+            level: m.level,
+          },
+        });
+
+        // Delete existing slides and questions for idempotent re-seed
+        await prisma.learningSlide.deleteMany({ where: { moduleId: dbModule.id } });
+        await prisma.quizQuestion.deleteMany({ where: { moduleId: dbModule.id } });
+
+        // Create slides
+        if (m.slides.length > 0) {
+          await prisma.learningSlide.createMany({
+            data: m.slides.map((s, i) => ({
+              moduleId: dbModule.id,
+              title: s.title,
+              layoutType: s.layoutType,
+              imageUrl: s.imageUrl,
+              bullets: s.bullets,
+              orderIndex: i,
+            })),
+          });
+          slideTotal += m.slides.length;
+        }
+
+        // Create quiz questions
+        if (m.quiz.length > 0) {
+          await prisma.quizQuestion.createMany({
+            data: m.quiz.map((q, i) => ({
+              moduleId: dbModule.id,
+              question: q.question,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanation,
+              orderIndex: i,
+            })),
+          });
+          questionTotal += m.quiz.length;
+        }
+      }
+
+      moduleTotal += curriculum.modules.length;
+    }
+
+    console.log(`Seeded ${CURRICULA.length} topics, ${moduleTotal} modules, ${slideTotal} slides, ${questionTotal} questions!`);
+  }, 120000);
 });
