@@ -15,6 +15,7 @@ import {
   Trophy,
   Zap,
   Layers,
+  Lock,
   Settings
 } from 'lucide-react';
 import { learningService, progressService, TopicSummary } from '@/services/api';
@@ -410,14 +411,161 @@ export default function LearnPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4 w-full px-4 py-6 animate-fade-in">
-                    {filteredTopics.map((topic) => {
+                    {filteredTopics.map((topic, index) => {
                       const status = getDialStatus(topic);
+                      const isCompleted = status === 'COMPLETED';
+                      const isCurrent = status === 'CURRENT' || status === 'AVAILABLE';
+                      const isLocked = status === 'LOCKED';
+
+                      // Determine if this is the first locked topic in the filtered list
+                      const isFirstLocked = isLocked && (index === 0 || getDialStatus(filteredTopics[index - 1]) !== 'LOCKED');
+
+                      const progressPercent = topic.totalModules > 0 
+                        ? Math.round((topic.completedModules / topic.totalModules) * 100) 
+                        : 0;
+
+                      // Dynamic current module label (e.g. MOD 3)
+                      const currentModuleLabel = `MOD ${Math.min(topic.completedModules + 1, topic.totalModules)}`;
+
+                      if (isCurrent) {
+                        return (
+                          <div 
+                            key={topic.id}
+                            className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-xl p-5 md:p-6 flex flex-col gap-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-[#FF9900] text-left"
+                          >
+                            {/* Two-column layout: details + AWS Swoosh Progress Illustration */}
+                            <div className="flex items-center justify-between gap-6">
+                              {/* Left Details */}
+                              <div className="flex-1 min-w-0">
+                                <span className="inline-block bg-[#FF9900]/10 text-[#FF9900] border border-[#FF9900]/20 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-3">
+                                  Current
+                                </span>
+
+                                <h2 className="text-xl font-semibold text-slate-900 tracking-tight leading-tight">
+                                  {topic.name}
+                                </h2>
+
+                                {/* Details Row: No time estimate */}
+                                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500 font-normal">
+                                  <span>{topic.completedModules} / {topic.totalModules} Modules</span>
+                                  <span className="text-slate-350 font-semibold">•</span>
+                                  <span className="text-[#FF9900] font-semibold">
+                                    {currentModuleLabel}
+                                  </span>
+                                </div>
+
+                                {/* Progress bar and numeric percentage */}
+                                <div className="flex items-center gap-3 mt-4">
+                                  <div className="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full rounded-full transition-all duration-700 ease-out bg-[#FF9900]"
+                                      style={{ width: `${progressPercent}%` }} 
+                                    />
+                                  </div>
+                                  <span className="text-xs font-semibold text-slate-500 leading-none">
+                                    {progressPercent}%
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Right Side: AWS Swoosh Progress Illustration */}
+                              <div className="w-32 h-16 md:w-36 md:h-16 flex-shrink-0 flex items-center justify-center bg-white/10 border border-amber-500/20 rounded-xl p-2.5 relative overflow-hidden backdrop-blur-sm shadow-[0_0_12px_rgba(255,153,0,0.08)]">
+                                <svg viewBox="0 100 300 90" className="w-full h-auto text-slate-200/50 select-none">
+                                  <defs>
+                                    <clipPath id={`aws-swoosh-clip-${topic.id}`}>
+                                      <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
+                                      <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
+                                    </clipPath>
+                                  </defs>
+                                  
+                                  {/* Unfilled background swoosh outline */}
+                                  <g fill="rgba(255, 255, 255, 0.08)" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="3">
+                                    <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
+                                    <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
+                                  </g>
+                                  
+                                  {/* Filled swoosh left-to-right using clipPath */}
+                                  <g clipPath={`url(#aws-swoosh-clip-${topic.id})`}>
+                                    <rect 
+                                      x="0" 
+                                      y="100" 
+                                      width={`${(300 * progressPercent) / 100}`} 
+                                      height="90" 
+                                      fill="#FF9900" 
+                                      className="transition-all duration-700 ease-out"
+                                    />
+                                  </g>
+                                </svg>
+                              </div>
+                            </div>
+
+                            {/* Bottom Row: Action */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
+                              <Link 
+                                href={`/learn/${topic.slug}`}
+                                className="border border-[#FF9900] text-[#FF9900] hover:bg-[#FF9900]/5 px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
+                              >
+                                <span>Continue</span>
+                                <span className="text-sm">→</span>
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (isCompleted) {
+                        return (
+                          <div 
+                            key={topic.id}
+                            className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-emerald-500 text-left"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                              </div>
+                              <span className="font-semibold text-slate-800 text-sm md:text-base leading-none">
+                                {topic.name}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-slate-600 bg-white/10 border border-white/20 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
+                                {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
+                              </span>
+                            </div>
+                            
+                            <Link 
+                              href={`/learn/${topic.slug}`}
+                              className="border border-emerald-500/40 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/15 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all active:scale-[0.98] cursor-pointer"
+                            >
+                              <span>Review</span>
+                              <span className="text-sm">→</span>
+                            </Link>
+                          </div>
+                        );
+                      }
+
+                      // Locked topic
                       return (
-                        <TopicRailItem
-                          key={topic.id}
-                          topic={topic}
-                          status={status}
-                        />
+                        <React.Fragment key={topic.id}>
+                          {isFirstLocked && (
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-heading mt-6 mb-3 self-start pl-2">
+                              UPCOMING TOPICS
+                            </span>
+                          )}
+                          <div 
+                            className="w-full bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_24px_rgba(0,0,0,0.05)] select-none opacity-80 text-left"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                <Lock className="w-4 h-4" />
+                              </div>
+                              <span className="font-semibold text-slate-700 text-sm md:text-base leading-none">
+                                {topic.name}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-slate-500 bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
+                                {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
+                              </span>
+                            </div>
+                          </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
