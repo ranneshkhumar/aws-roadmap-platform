@@ -86,20 +86,6 @@ export default function EditTopicModal({ isOpen, topic, onClose, onSubmit }: Edi
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="font-extrabold text-slate-550 block">Island Theme Template</label>
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as TopicTheme)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-            >
-              <option value="TECH">Tech Island (AWS, Cloud Foundations)</option>
-              <option value="FORGE">Forge Island (DevOps, CI/CD, Automation)</option>
-              <option value="CITADEL">Citadel Island (Security, IAM, Governance)</option>
-              <option value="HARBOR">Harbor Island (Kubernetes, Containers, Infrastructure)</option>
-              <option value="CRYSTAL">Crystal Island (AI, ML, Data Science)</option>
-            </select>
-          </div>
 
           <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100 mt-5">
             <button

@@ -83,10 +83,10 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
   const renderVisual = () => {
     if (imageUrl) {
       return (
-        <img 
-          src={imageUrl} 
-          alt={title} 
-          className="w-full max-h-[160px] object-contain rounded-lg drop-shadow-md"
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full max-h-[180=px] object-contain rounded-lg drop-shadow-md"
         />
       );
     }
@@ -97,11 +97,10 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-black text-slate-950 tracking-tight">{title}</h3>
-        <div className="flex flex-col items-center justify-center bg-slate-950 rounded-2xl p-6 border border-slate-800 shadow-inner">
-          {renderVisual()}
-          <span className="text-[10px] font-semibold text-slate-500 mt-4 tracking-wider uppercase">
-            Architectural Diagram
-          </span>
+        <div className="rounded-2xl overflow-hidden">
+          <div className="w-full">
+            {renderVisual()}
+          </div>
         </div>
       </div>
     );
@@ -111,25 +110,29 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-black text-slate-950 tracking-tight">{title}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+          {/* Image first on the left */}
+          <div className="rounded-2xl overflow-hidden border border-slate-200">
+            {renderVisual()}
+          </div>
+
+          {/* Bullets on the right */}
           <div className="space-y-3.5">
             {bullets.map((bullet, idx) => (
               <div key={idx} className="flex items-start gap-3">
-                <div className="mt-1 flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                  <Icons.CheckCircle2 className="w-3.5 h-3.5 fill-current" />
+                <div className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Icons.CheckCircle2 className="w-4 h-4 fill-current" />
                 </div>
                 <p className="text-sm text-slate-700 leading-relaxed font-medium">{bullet}</p>
               </div>
             ))}
           </div>
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 shadow-inner flex items-center justify-center">
-            {renderVisual()}
-          </div>
+
         </div>
       </div>
     );
   }
-
   // Default: text-only
   return (
     <div className="space-y-4">
