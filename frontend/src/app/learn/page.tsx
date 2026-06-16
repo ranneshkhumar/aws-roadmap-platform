@@ -3,11 +3,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LogOut, 
-  Search, 
-  BookOpen, 
-  AlertCircle, 
+import {
+  LogOut,
+  Search,
+  BookOpen,
+  AlertCircle,
   X,
   Loader2,
   ChevronRight,
@@ -29,12 +29,12 @@ import { cn } from '@/lib/utils';
 
 export default function LearnPage() {
   const router = useRouter();
-  
+
   // State variables
   const [topics, setTopics] = useState<TopicSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [continueModule, setContinueModule] = useState<any | null>(null);
   const [userXP, setUserXP] = useState<number>(0);
@@ -99,8 +99,8 @@ export default function LearnPage() {
   const filteredTopics = useMemo(() => {
     if (!searchQuery.trim()) return topics;
     const q = searchQuery.toLowerCase();
-    return topics.filter(t => 
-      t.name.toLowerCase().includes(q) || 
+    return topics.filter(t =>
+      t.name.toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q))
     );
   }, [topics, searchQuery]);
@@ -153,7 +153,7 @@ export default function LearnPage() {
     const isLocked = !topic.unlocked;
     const isCompleted = topic.status === 'COMPLETED';
     const isCurrent = topic.unlocked && !isCompleted;
-    
+
     if (isLocked) return 'LOCKED';
     if (isCompleted) return 'COMPLETED';
     if (isCurrent) return 'CURRENT';
@@ -214,7 +214,7 @@ export default function LearnPage() {
         <SkyBackground />
 
         <div className="max-w-7xl mx-auto px-6 pt-8 flex flex-col gap-8 relative z-10">
-          
+
           {/* ROADMAP PROGRESS HEADER PANEL */}
           <header className="flex flex-col md:flex-row items-center justify-between gap-4 w-full pointer-events-auto py-2">
             {/* Left Side: Current Mission Info */}
@@ -366,8 +366,8 @@ export default function LearnPage() {
                   onClick={handleResume}
                   className={cn(
                     "font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading cursor-pointer text-white",
-                    continueModule 
-                      ? "bg-[#00cba9] hover:bg-[#00bda0]" 
+                    continueModule
+                      ? "bg-[#00cba9] hover:bg-[#00bda0]"
                       : "bg-slate-300 shadow-none cursor-not-allowed"
                   )}
                 >
@@ -392,7 +392,7 @@ export default function LearnPage() {
                     className="w-full pl-10 pr-9 py-2 bg-white/90 border border-slate-200/80 rounded-full text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 shadow-sm transition-all"
                   />
                   {searchQuery && (
-                    <button 
+                    <button
                       onClick={() => setSearchQuery('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 transition-colors"
                     >
@@ -420,8 +420,8 @@ export default function LearnPage() {
                       // Determine if this is the first locked topic in the filtered list
                       const isFirstLocked = isLocked && (index === 0 || getDialStatus(filteredTopics[index - 1]) !== 'LOCKED');
 
-                      const progressPercent = topic.totalModules > 0 
-                        ? Math.round((topic.completedModules / topic.totalModules) * 100) 
+                      const progressPercent = topic.totalModules > 0
+                        ? Math.round((topic.completedModules / topic.totalModules) * 100)
                         : 0;
 
                       // Dynamic current module label (e.g. MOD 3)
@@ -429,7 +429,7 @@ export default function LearnPage() {
 
                       if (isCurrent) {
                         return (
-                          <div 
+                          <div
                             key={topic.id}
                             className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-xl p-5 md:p-6 flex flex-col gap-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-[#FF9900] text-left"
                           >
@@ -457,9 +457,9 @@ export default function LearnPage() {
                                 {/* Progress bar and numeric percentage */}
                                 <div className="flex items-center gap-3 mt-4">
                                   <div className="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                       className="h-full rounded-full transition-all duration-700 ease-out bg-[#FF9900]"
-                                      style={{ width: `${progressPercent}%` }} 
+                                      style={{ width: `${progressPercent}%` }}
                                     />
                                   </div>
                                   <span className="text-xs font-semibold text-slate-500 leading-none">
@@ -470,28 +470,28 @@ export default function LearnPage() {
 
                               {/* Right Side: AWS Swoosh Progress Illustration */}
                               <div className="w-32 h-16 md:w-36 md:h-16 flex-shrink-0 flex items-center justify-center bg-white/10 border border-amber-500/20 rounded-xl p-2.5 relative overflow-hidden backdrop-blur-sm shadow-[0_0_12px_rgba(255,153,0,0.08)]">
-                                <svg viewBox="0 100 300 90" className="w-full h-auto text-slate-200/50 select-none">
+                                <svg viewBox="0 100 310 90" className="w-full h-auto text-slate-200/50 select-none">
                                   <defs>
                                     <clipPath id={`aws-swoosh-clip-${topic.id}`}>
                                       <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
                                       <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
                                     </clipPath>
                                   </defs>
-                                  
+
                                   {/* Unfilled background swoosh outline */}
-                                  <g fill="rgba(255, 255, 255, 0.08)" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="3">
+                                  <g fill="rgba(226, 232, 240, 0.25)" stroke="rgba(255, 159, 0, 1)" strokeWidth="3">
                                     <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
                                     <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
                                   </g>
-                                  
+
                                   {/* Filled swoosh left-to-right using clipPath */}
                                   <g clipPath={`url(#aws-swoosh-clip-${topic.id})`}>
-                                    <rect 
-                                      x="0" 
-                                      y="100" 
-                                      width={`${(300 * progressPercent) / 100}`} 
-                                      height="90" 
-                                      fill="#FF9900" 
+                                    <rect
+                                      x="0"
+                                      y="100"
+                                      width={`${(300 * progressPercent) / 100}`}
+                                      height="90"
+                                      fill="#FF9900"
                                       className="transition-all duration-700 ease-out"
                                     />
                                   </g>
@@ -501,7 +501,7 @@ export default function LearnPage() {
 
                             {/* Bottom Row: Action */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
-                              <Link 
+                              <Link
                                 href={`/learn/${topic.slug}`}
                                 className="border border-[#FF9900] text-[#FF9900] hover:bg-[#FF9900]/5 px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
                               >
@@ -515,7 +515,7 @@ export default function LearnPage() {
 
                       if (isCompleted) {
                         return (
-                          <div 
+                          <div
                             key={topic.id}
                             className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-emerald-500 text-left"
                           >
@@ -530,8 +530,8 @@ export default function LearnPage() {
                                 {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
                               </span>
                             </div>
-                            
-                            <Link 
+
+                            <Link
                               href={`/learn/${topic.slug}`}
                               className="border border-emerald-500/40 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/15 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all active:scale-[0.98] cursor-pointer"
                             >
@@ -550,7 +550,7 @@ export default function LearnPage() {
                               UPCOMING TOPICS
                             </span>
                           )}
-                          <div 
+                          <div
                             className="w-full bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_24px_rgba(0,0,0,0.05)] select-none opacity-80 text-left"
                           >
                             <div className="flex items-center gap-3">
