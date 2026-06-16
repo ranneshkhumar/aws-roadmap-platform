@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Trophy,
   Zap,
-  Layers
+  Layers,
+  Settings
 } from 'lucide-react';
 import { learningService, progressService, TopicSummary } from '@/services/api';
 import { getAuthSession } from '@/lib/authHelper';
@@ -36,6 +37,7 @@ export default function LearnPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [continueModule, setContinueModule] = useState<any | null>(null);
   const [userXP, setUserXP] = useState<number>(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Exit handler
   const handleExit = () => {
@@ -57,6 +59,7 @@ export default function LearnPage() {
       router.replace('/login');
       return;
     }
+    setUserRole(session.role);
 
     let active = true;
     const fetchTopics = async () => {
@@ -275,6 +278,16 @@ export default function LearnPage() {
                   </span>
                 </div>
               </div>
+
+              {(userRole === 'core' || userRole === 'crew') && (
+                <Link
+                  href={userRole === 'core' ? '/core/topics' : '/core/learners'}
+                  className="p-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/30 text-indigo-600 rounded-2xl transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+                  title="Admin Portal"
+                >
+                  <Settings className="w-4 h-4" />
+                </Link>
+              )}
 
               <button
                 onClick={handleExit}

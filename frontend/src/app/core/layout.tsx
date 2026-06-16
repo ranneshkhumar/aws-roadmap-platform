@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import * as Icons from 'lucide-react';
 import { getAuthSession } from '@/lib/authHelper';
 import { authService } from '@/services/auth.service';
 import { ToastContainer } from '@/components/Core/Toast';
+import { cn } from '@/lib/utils';
 
 interface CoreLayoutProps {
   children: React.ReactNode;
@@ -60,46 +62,88 @@ export default function CoreLayout({ children }: CoreLayoutProps) {
     <div className="flex h-screen w-screen bg-slate-50 text-slate-800 font-sans overflow-hidden select-none">
       <ToastContainer />
       
-      {/* ═══════════════ PLACEHOLDER SIDEBAR (future dashboard integration) ═══════════════ */}
-      <aside className="w-64 flex-shrink-0 h-full bg-white border-r border-slate-200">
-        <div className="h-full flex items-center justify-center">
-          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider select-none">
-            Dashboard Navigation
-          </span>
+      {/* ═══════════════ SIDEBAR NAVIGATION ═══════════════ */}
+      <aside className="w-64 flex-shrink-0 h-full bg-white border-r border-slate-200 flex flex-col justify-between select-none">
+        {!pathname.startsWith('/core/learners') && (
+          <div className="flex-1 flex flex-col min-h-0 pt-5 pb-4">
+            {/* Logo / Header */}
+            <div className="flex items-center gap-2.5 px-6 pb-6 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                <Icons.Shield className="w-4.5 h-4.5 stroke-[2.5]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-900 tracking-tight leading-tight uppercase font-heading">
+                  Cloud Club
+                </span>
+                <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase leading-none mt-0.5 font-heading">
+                  CMS Portal
+                </span>
+              </div>
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="mt-6 flex-1 px-4 space-y-1">
+              {userRole === 'core' && (
+                <Link
+                  href="/core/topics"
+                  className={cn(
+                    "group flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all font-heading",
+                    pathname.startsWith('/core/topics')
+                      ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-500/5"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <Icons.Layers className={cn(
+                    "w-4 h-4",
+                    pathname.startsWith('/core/topics') ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
+                  )} />
+                  Roadmap Builder
+                </Link>
+              )}
+
+              <Link
+                href="/core/learners"
+                className={cn(
+                  "group flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all font-heading",
+                  pathname.startsWith('/core/learners')
+                    ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-500/5"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                <Icons.Users className={cn(
+                  "w-4 h-4",
+                  pathname.startsWith('/core/learners') ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
+                )} />
+                Learners Directory
+              </Link>
+            </nav>
+          </div>
+        )}
+
+        {/* Sidebar Bottom Actions */}
+        <div className={cn("p-4 border-t border-slate-100 space-y-1", pathname.startsWith('/core/learners') && "mt-auto border-t-0")}>
+          {!pathname.startsWith('/core/learners') && userRole !== 'crew' && (
+            <Link
+              href="/learn"
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all font-heading"
+            >
+              <Icons.ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+              Back to Learning Hub
+            </Link>
+          )}
+
+          <button
+            onClick={() => { authService.logout(); router.push('/login'); }}
+            className="w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all font-heading"
+          >
+            <Icons.LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
+            Logout
+          </button>
         </div>
       </aside>
 
       {/* ═══════════════ MAIN CONTENT PANEL (Right) ═══════════════ */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        
-        {/* Top Header Navbar */}
-        <nav className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0">
-          
-          {/* Navigation Tabs based on role - replaced with a neutral title */}
-          <div className="flex items-center gap-6 h-full text-xs font-bold text-slate-800">
-            <span className="text-sm font-extrabold tracking-tight text-slate-700 select-none">
-              CMS Admin Hub
-            </span>
-          </div>
-
-          {/* Right Side: Logout + Bell action */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { authService.logout(); router.push('/login'); }}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-rose-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-rose-50"
-            >
-              <Icons.LogOut className="w-3.5 h-3.5" />
-              Logout
-            </button>
-            <button
-              onClick={() => alert("Notifications are clear.")}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-450 hover:text-slate-650 transition-colors"
-            >
-              <Icons.Bell className="w-4.5 h-4.5" />
-            </button>
-          </div>
-        </nav>
-
         {/* Page Content viewport */}
         <main className="flex-1 min-h-0 overflow-hidden">
           {children}

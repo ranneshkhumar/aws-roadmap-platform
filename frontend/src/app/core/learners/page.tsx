@@ -64,6 +64,9 @@ export default function LearnersDirectoryPage() {
   const totalModulesCount =
     learners.length > 0 ? learners[0].totalModulesCount : 0;
 
+  const totalTopicsCount =
+    learners.length > 0 ? learners[0].totalTopicsCount : 0;
+
   return (
     <div className="h-full flex flex-col bg-slate-50 text-slate-800 overflow-hidden font-sans">
 
@@ -84,6 +87,14 @@ export default function LearnersDirectoryPage() {
           >
             Learners Directory
           </Link>
+          {isCrew && (
+            <Link
+              href="/learn"
+              className="transition-all duration-150 h-full flex items-center px-1 border-b-2 text-slate-400 border-transparent hover:text-slate-700 hover:border-slate-300 font-bold"
+            >
+              Back to Topics
+            </Link>
+          )}
         </div>
 
         <div className="relative w-72 flex-shrink-0">
@@ -127,7 +138,7 @@ export default function LearnersDirectoryPage() {
                       "px-3 py-1.5 border rounded-xl text-xs font-black transition-all flex items-center gap-2 font-heading shadow-xs",
                       active
                         ? tab.id === 'all'
-                          ? "bg-slate-900 border-slate-900 text-white"
+                          ? "bg-blue-600 border-blue-600 text-white"
                           : tab.id === 'CREW'
                             ? "bg-amber-600 border-amber-600 text-white"
                             : "bg-indigo-600 border-indigo-600 text-white"
@@ -182,10 +193,11 @@ export default function LearnersDirectoryPage() {
         </div>
 
         {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { label: 'Total Learners', value: learners.length, icon: Icons.Users, color: 'text-indigo-650 bg-white border-slate-200 shadow-sm' },
             { label: 'Total Modules', value: totalModulesCount, icon: Icons.Layers, color: 'text-emerald-600 bg-white border-slate-200 shadow-sm' },
+            { label: 'Total Topics', value: totalTopicsCount, icon: Icons.BookOpen, color: 'text-sky-600 bg-white border-slate-200 shadow-sm' },
           ].map((stat, idx) => (
             <div key={idx} className={cn("border rounded-2xl p-4 flex items-center justify-between", stat.color)}>
               <div className="space-y-1">

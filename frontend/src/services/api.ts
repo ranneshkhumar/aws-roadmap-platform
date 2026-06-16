@@ -408,6 +408,7 @@ export interface LearnerSummary {
   currentModuleOrder: number | null;
   completedModulesCount: number;
   totalModulesCount: number;
+  totalTopicsCount: number;
   isPlatformComplete: boolean;
 }
 

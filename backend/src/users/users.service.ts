@@ -38,7 +38,7 @@ export class UsersService {
   }
 
   async findAllLearners() {
-    const [users, totalModulesCount] = await Promise.all([
+    const [users, totalModulesCount, totalTopicsCount] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: { in: [Role.CREW, Role.ENTHUSIAST] } },
         orderBy: { xp: 'desc' },
@@ -60,6 +60,7 @@ export class UsersService {
         },
       }),
       this.prisma.module.count(),
+      this.prisma.topic.count(),
     ]);
 
     return users.map((u) => {
@@ -94,6 +95,7 @@ export class UsersService {
         currentModuleOrder: activeRow?.module.orderIndex ?? null,
         completedModulesCount,
         totalModulesCount,
+        totalTopicsCount,
         isPlatformComplete: completedModulesCount === totalModulesCount,
       };
     });
