@@ -65,21 +65,33 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams.get('mode') || 'reading';
-  
+
   const { moduleId } = use(params);
-  
+
   // State controllers
-  const [module, setModule] = useState<{ id: string; name: string; level: string; dbId: string; points: number; iconName: string; topicSlug: string; topicName: string } | null>(null);
+  const [module, setModule] = useState<{
+    id: string;
+    name: string;
+    level: string;
+    dbId: string;
+    points: number;
+    iconName: string;
+    topicId: string;
+    topicSlug: string;
+    topicName: string;
+    prevCompletedModules: number;
+    prevTotalModules: number;
+  } | null>(null);
   const [slides, setSlides] = useState<any[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
-  
+
   const [step, setStep] = useState<'reading' | 'quiz-unlock' | 'quiz' | 'review'>('reading');
   const [slideIndex, setSlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [securityError, setSecurityError] = useState(false);
   const [isCompletedModule, setIsCompletedModule] = useState(false);
-  
+
   // Quiz states
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: number }>({});
@@ -88,7 +100,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [quizReview, setQuizReview] = useState<QuizReviewData | undefined>(undefined);
   const [quizResult, setQuizResult] = useState<{ topicCompleted: boolean; nextTopicUnlocked: boolean } | null>(null);
-  
+
   // Confetti overlay state
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -127,12 +139,16 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         // Resolve topicSlug and topicName for navigation & header info
         let topicSlug = '';
         let topicName = '';
+        let prevCompletedModules = 0;
+        let prevTotalModules = 0;
         if (activeModule.topicId) {
           const topics = await learningService.getTopicList();
           const matchedTopic = topics.find((t) => t.id === activeModule.topicId);
           if (matchedTopic) {
             topicSlug = matchedTopic.slug;
             topicName = matchedTopic.name;
+            prevCompletedModules = matchedTopic.completedModules;
+            prevTotalModules = matchedTopic.totalModules;
           }
         }
 
@@ -150,7 +166,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
         // 3. Fetch module slides
         const fetchedSlides = await slidesService.getSlides(dbId);
-        
+
         // Runtime Slide validation
         for (const s of fetchedSlides) {
           if (!s.title || !s.layoutType || s.orderIndex === undefined) {
@@ -183,8 +199,11 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
           points: activeModule.xpPoints,
           dbId: activeModule.id,
           iconName: getIconForSlug(activeModule.slug),
+          topicId: activeModule.topicId || '',
           topicSlug,
           topicName,
+          prevCompletedModules,
+          prevTotalModules,
         });
 
         // Map backend slides content
@@ -424,6 +443,15 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
       const reviewData = await progressService.getQuizReview(module.dbId);
       setQuizReview(reviewData);
       setQuizResult({ topicCompleted: result.topicCompleted, nextTopicUnlocked: result.nextTopicUnlocked });
+      
+      if (result.topicCompleted && module && typeof window !== 'undefined') {
+        sessionStorage.setItem("recentTopicCompletion", module.topicId);
+        const prevPercent = module.prevTotalModules > 0
+          ? Math.round((module.prevCompletedModules / module.prevTotalModules) * 100)
+          : 0;
+        sessionStorage.setItem("recentTopicPrevPercent", String(prevPercent));
+      }
+
       setStep('review');
       setShowSubmitConfirm(false);
     } catch (err: any) {
@@ -436,7 +464,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
 
   return (
     <div className="min-h-screen w-screen bg-gradient-to-br from-[#E0F2FE] via-[#F0F9FF] to-[#FFFFFF] flex items-center justify-center p-4 font-sans select-none relative overflow-hidden text-slate-800">
-      
+
       {/* Background Ambience */}
       <div className="absolute top-[10%] left-[5%] w-64 h-64 bg-cyan-300/10 rounded-full blur-[100px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-[10%] right-[5%] w-96 h-96 bg-emerald-300/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
@@ -447,11 +475,11 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
       )}
 
       <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-[32px] shadow-2xl p-6 md:p-8 flex flex-col min-h-[520px] relative z-10">
-        
+
         {/* TOP STATUS BAR */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
           <div className="flex items-center gap-3">
-            <Link 
+            <Link
               href={module?.topicSlug ? `/learn/${module.topicSlug}` : '/learn'}
               className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors flex items-center justify-center"
             >
@@ -480,7 +508,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
               </h1>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
               <Icons.Zap className="w-3.5 h-3.5 fill-current" />
@@ -492,7 +520,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
         {/* INTERACTIVE FLOW CONTENT VIEWPORTS */}
         <div className="flex-1 flex flex-col justify-center">
           <AnimatePresence mode="wait">
-            
+
             {/* STEP 1: READING CONTENT SLIDES */}
             {step === 'reading' && (
               <motion.div
@@ -510,7 +538,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                   </div>
 
                   {/* Adaptive content model renderer */}
-                  <LearningContentRenderer 
+                  <LearningContentRenderer
                     title={slides[slideIndex].title}
                     bullets={slides[slideIndex].content}
                     layout={slides[slideIndex].layoutType}
@@ -527,10 +555,10 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                         <Icons.CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                         <span>You have already completed this module assessment. Duplicate attempts are disabled.</span>
                       </div>
-                      
+
                       <div className="flex justify-center gap-1.5 py-2">
                         {slides.map((_, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             className={cn(
                               "h-1.5 rounded-full transition-all duration-300",
@@ -587,10 +615,10 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                         <Icons.CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                         <span>You have completed all learning content. Click "Mark As Read" to unlock the validation quiz.</span>
                       </div>
-                      
+
                       <div className="flex justify-center gap-1.5 py-2">
                         {slides.map((_, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             className={cn(
                               "h-1.5 rounded-full transition-all duration-300",
@@ -624,7 +652,7 @@ export default function ModulePage({ params }: { params: Promise<{ moduleId: str
                   <div className="space-y-4">
                     <div className="flex justify-center gap-1.5 py-2">
                       {slides.map((_, idx) => (
-                        <div 
+                        <div
                           key={idx}
                           className={cn(
                             "h-1.5 rounded-full transition-all duration-300",

@@ -241,7 +241,7 @@ export default function PrototypePage() {
       <div className="min-h-screen w-screen bg-gradient-to-b from-[#bae6fd] via-[#e0f2fe] to-white font-sans select-none relative overflow-y-auto pb-12">
         <SkyBackground />
 
-        <div className="max-w-7xl mx-auto px-6 pt-8 flex flex-col gap-8 relative z-10">
+        <div className="max-w-full mx-auto px-6 xl:px-12 pt-8 flex flex-col gap-8 relative z-10">
 
           {/* ROADMAP PROGRESS HEADER PANEL (COPIED FROM /LEARN) */}
           <header className="flex flex-col md:flex-row items-center justify-between gap-4 w-full pointer-events-auto py-2">
@@ -398,9 +398,9 @@ export default function PrototypePage() {
           </header>
 
           {/* TWO-COLUMN LAYOUT: Experimental rail + Learning Guide */}
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-8 lg:items-stretch">
             {/* Left Column: Search + Experimental Topic Cards */}
-            <div className="flex-[2] min-w-0" id="topic-rail-section">
+            <div className="flex-[1.5] min-w-0" id="topic-rail-section">
               <div className="flex items-center pointer-events-auto">
                 <div className="relative min-w-[240px] w-full">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -488,7 +488,7 @@ export default function PrototypePage() {
                           <span className="font-semibold text-slate-800 text-sm md:text-base leading-none">
                             {topic.title}
                           </span>
-                          <span className="text-[10px] font-extrabold text-slate-600 bg-white/10 border border-white/20 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
+                          <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
                             {topic.modulesTotal} {topic.modulesTotal === 1 ? 'Module' : 'Modules'}
                           </span>
                         </div>
@@ -530,11 +530,9 @@ export default function PrototypePage() {
               </main>
             </div>
 
-            {/* Right Column: Learning Guide Panel (Copied from /learn) */}
-            <div className="w-full lg:w-[360px] flex-shrink-0">
-              <div className="lg:sticky lg:top-8">
-                <LearningGuidePanel />
-              </div>
+            {/* Right Column: Learning Guide Panel */}
+            <div className="w-full lg:flex-1 flex-shrink-0">
+              <LearningGuidePanel />
             </div>
           </div>
 

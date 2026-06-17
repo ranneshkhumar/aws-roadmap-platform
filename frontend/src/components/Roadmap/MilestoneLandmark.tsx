@@ -55,12 +55,12 @@ export const BeginnerSummitLandmark: React.FC<LandmarkProps> = ({ x, y, locked =
           </defs>
 
           {/* 1. FLOATING ROCK BASE */}
-          <path 
+          <path
             d="M 25,90 
                L 155,90 
                L 135,118 
                L 90,135 
-               L 45,118 Z" 
+               L 45,118 Z"
             fill="url(#beg-rock-grad)"
             stroke="#1E293B"
             strokeWidth="1.5"
@@ -95,8 +95,8 @@ export const BeginnerSummitLandmark: React.FC<LandmarkProps> = ({ x, y, locked =
           <motion.div
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center shadow-lg border relative transition-all duration-300",
-              locked 
-                ? "bg-white/95 border-slate-200 text-slate-400" 
+              locked
+                ? "bg-white/95 border-slate-200 text-slate-400"
                 : "bg-gradient-to-br from-amber-400 to-amber-500 border-white text-slate-950 shadow-amber-500/20"
             )}
             animate={!locked ? { scale: [1, 1.08, 1] } : {}}
@@ -150,12 +150,12 @@ export const IntermediateSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lock
         {/* Snowy Mountain Floating Island SVG */}
         <svg viewBox="0 0 180 140" className="w-80 h-64 absolute bottom-6 drop-shadow-xl pointer-events-none">
           {/* 1. FLOATING ROCK BASE (Larger) */}
-          <path 
+          <path
             d="M 20,85 
                L 160,85 
                L 138,118 
                L 90,138 
-               L 42,118 Z" 
+               L 42,118 Z"
             fill="url(#beg-rock-grad)"
             stroke="#1E293B"
             strokeWidth="1.5"
@@ -190,22 +190,26 @@ export const IntermediateSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lock
           <motion.div
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center shadow-lg border relative transition-all duration-300",
-              locked 
-                ? "bg-slate-100/90 border-slate-350 text-slate-400" 
-                : "bg-gradient-to-br from-orange-450 to-orange-550 border-white text-white shadow-orange-500/20"
+              locked
+                ? "bg-slate-100/90 border-slate-350 text-slate-400"
+                : "bg-gradient-to-br from-orange-400 to-amber-500 border-white text-slate-950 shadow-orange-500/20"
             )}
             animate={!locked ? { scale: [1, 1.08, 1] } : {}}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <Icons.Zap className="w-5 h-5 fill-current" />
+            {locked ? (
+              <Icons.Zap className="w-5 h-5 text-yellow-500 fill-yellow-400" />
+            ) : (
+              <Icons.Trophy className="w-6 h-6 fill-current drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+            )}
           </motion.div>
         </div>
 
         {/* Premium Summit Sign Plate (Matches intermediate sign in reference image) */}
         <div className={cn(
           "absolute bottom-6 left-1/2 -translate-x-1/2 w-60 border rounded-2xl px-4 py-2.5 text-center shadow-2xl z-30 select-none",
-          locked 
-            ? "bg-slate-700 border-slate-600 text-slate-205" 
+          locked
+            ? "bg-slate-700 border-slate-600 text-slate-205"
             : "bg-orange-600 border-orange-500 text-white"
         )}>
           <h4 className="text-[11px] font-black uppercase tracking-wider font-heading text-white">
@@ -266,12 +270,12 @@ export const CloudArchitectSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lo
           </defs>
 
           {/* 1. FLOATING ROCK BASE */}
-          <path 
+          <path
             d="M 20,85 
                L 160,85 
                L 135,118 
                L 90,138 
-               L 45,118 Z" 
+               L 45,118 Z"
             fill="url(#castle-rock-grad)"
             stroke="#1E293B"
             strokeWidth="1.5"
@@ -279,7 +283,7 @@ export const CloudArchitectSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lo
           />
           {/* Rock cracks */}
           <path d="M 55,85 L 90,138 L 115,85" fill="none" stroke="#0F172A" strokeWidth="1.2" opacity="0.4" />
-          
+
           {/* 2. GRASS LAYER */}
           <ellipse cx="90" cy="85" rx="72" ry="19" fill="#045D43" opacity={locked ? 0.75 : 1} />
           <ellipse cx="90" cy="84" rx="70" ry="18" fill="url(#castle-grass-grad)" stroke="#047857" strokeWidth="1.5" opacity={locked ? 0.75 : 1} />
@@ -290,52 +294,283 @@ export const CloudArchitectSummitLandmark: React.FC<LandmarkProps> = ({ x, y, lo
 
         {/* Castle drawing vector */}
         <div className="absolute top-4 flex flex-col items-center">
-          <svg 
-            width="110" 
-            height="110" 
-            viewBox="0 0 64 64" 
+          <svg
+            width="200"
+            height="150"
+            viewBox="0 0 100 100"
             className={cn(
-              "transition-all duration-350 drop-shadow-[0_4px_12px_rgba(0,0,0,0.15)]",
-              locked 
-                ? "text-slate-400 fill-slate-300/40 opacity-40" 
-                : "text-amber-100 fill-amber-500 drop-shadow-[0_0_30px_rgba(255,221,148,0.95)] animate-pulse"
+              "transition-all duration-350",
+              locked
+                ? "grayscale opacity-40 brightness-75 contrast-75"
+                : "drop-shadow-[0_0_30px_rgba(255,221,148,0.95)] animate-pulse"
             )}
           >
-            {/* Center Keep */}
-            <rect x="22" y="24" width="20" height="24" stroke="currentColor" strokeWidth="1.5" />
-            <polygon points="20,24 32,12 44,24" fill="currentColor" />
-            {/* Left Tower */}
-            <rect x="12" y="16" width="8" height="32" stroke="currentColor" strokeWidth="1.5" />
-            <polygon points="10,16 16,6 22,16" fill="currentColor" />
-            {/* Right Tower */}
-            <rect x="44" y="16" width="8" height="32" stroke="currentColor" strokeWidth="1.5" />
-            <polygon points="42,16 48,6 54,16" fill="currentColor" />
-            {/* Castle door */}
-            <path d="M28 48 V38 C28 35, 36 35, 36 38 V48 Z" fill="#334155" />
+            <defs>
+              {/* Light Beam Gradient */}
+              <linearGradient id="svg-light-beam" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#bae6fd" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#bae6fd" stopOpacity="0" />
+              </linearGradient>
+
+              {/* Gold/Coins Gradient */}
+              <linearGradient id="svg-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fef08a" />
+                <stop offset="100%" stopColor="#f59e0b" />
+              </linearGradient>
+
+              {/* Dome Gradient */}
+              <linearGradient id="svg-dome-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#c2410c" />
+              </linearGradient>
+
+              {/* Cylinder Tier 4 Gradient */}
+              <linearGradient id="svg-tier4-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#fde047" />
+                <stop offset="100%" stopColor="#eab308" />
+              </linearGradient>
+
+              {/* Tier 3 Gradient */}
+              <linearGradient id="svg-tier3-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#eab308" />
+                <stop offset="100%" stopColor="#ca8a04" />
+              </linearGradient>
+
+              {/* Tier 2 Gradient */}
+              <linearGradient id="svg-tier2-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#d97706" />
+                <stop offset="100%" stopColor="#b45309" />
+              </linearGradient>
+
+              {/* Tier 1 Gradient */}
+              <linearGradient id="svg-tier1-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#c2410c" />
+                <stop offset="100%" stopColor="#9a3412" />
+              </linearGradient>
+
+              {/* Base Keep Gradient */}
+              <linearGradient id="svg-base-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#7c2d12" />
+                <stop offset="100%" stopColor="#451a03" />
+              </linearGradient>
+
+              {/* Platform Gradient */}
+              <linearGradient id="svg-platform-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#7c2d12" />
+                <stop offset="100%" stopColor="#451a03" />
+              </linearGradient>
+            </defs>
+
+            {/* Light Rays */}
+            <polygon points="36,0 64,0 55,84 45,84" fill="url(#svg-light-beam)" opacity="0.75" />
+
+            {/* Coins at the top */}
+            <circle cx="50" cy="11" r="3.2" fill="url(#svg-gold-grad)" stroke="#b45309" strokeWidth="0.8" />
+            <circle cx="43" cy="13" r="2.2" fill="url(#svg-gold-grad)" stroke="#b45309" strokeWidth="0.8" />
+            <circle cx="57" cy="13" r="2.2" fill="url(#svg-gold-grad)" stroke="#b45309" strokeWidth="0.8" />
+
+            {/* Dome Roof */}
+            <path d="M 37,22 C 37,15 63,15 63,22 Z" fill="url(#svg-dome-grad)" stroke="#9a3412" strokeWidth="1" />
+            {/* Dome Rim */}
+            <rect x="36" y="21.5" width="28" height="1.5" rx="0.75" fill="url(#svg-dome-grad)" stroke="#9a3412" strokeWidth="0.8" />
+
+            {/* Tier 4 (Cylinder) */}
+            <rect x="40" y="23" width="20" height="11" fill="url(#svg-tier4-grad)" stroke="#ca8a04" strokeWidth="1" />
+
+            {/* Tier 3 */}
+            <rect x="35" y="34" width="30" height="10" fill="url(#svg-tier3-grad)" stroke="#b45309" strokeWidth="1" />
+            <line x1="42" y1="34" x2="42" y2="44" stroke="#b45309" strokeWidth="0.8" />
+            <line x1="50" y1="34" x2="50" y2="44" stroke="#b45309" strokeWidth="0.8" />
+            <line x1="58" y1="34" x2="58" y2="44" stroke="#b45309" strokeWidth="0.8" />
+
+            {/* Tier 2 */}
+            <rect x="30" y="44" width="40" height="12" fill="url(#svg-tier2-grad)" stroke="#9a3412" strokeWidth="1" />
+            <line x1="36" y1="44" x2="36" y2="56" stroke="#9a3412" strokeWidth="0.8" />
+            <line x1="43" y1="44" x2="43" y2="56" stroke="#9a3412" strokeWidth="0.8" />
+            <line x1="50" y1="44" x2="50" y2="56" stroke="#9a3412" strokeWidth="0.8" />
+            <line x1="57" y1="44" x2="57" y2="56" stroke="#9a3412" strokeWidth="0.8" />
+            <line x1="64" y1="44" x2="64" y2="56" stroke="#9a3412" strokeWidth="0.8" />
+
+            {/* Tier 1 */}
+            <rect x="25" y="56" width="50" height="12" fill="url(#svg-tier1-grad)" stroke="#7c2d12" strokeWidth="1" />
+            <line x1="31" y1="56" x2="31" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+            <line x1="39" y1="56" x2="39" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+            <line x1="47" y1="56" x2="47" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+            <line x1="53" y1="56" x2="53" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+            <line x1="61" y1="56" x2="61" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+            <line x1="69" y1="56" x2="69" y2="68" stroke="#7c2d12" strokeWidth="0.8" />
+
+            {/* Base Keep */}
+            <rect x="35" y="68" width="30" height="16" fill="url(#svg-base-grad)" stroke="#451a03" strokeWidth="1" />
+            <path d="M 45,84 L 45,76 C 45,72 55,72 55,76 L 55,84 Z" fill="#27170f" stroke="#451a03" strokeWidth="0.8" />
+
+            {/* Clouds at left and right bottom */}
+            <ellipse cx="14" cy="90" rx="16" ry="6" fill="#FFFFFF" opacity="0.85" />
+            <ellipse cx="86" cy="90" rx="16" ry="6" fill="#FFFFFF" opacity="0.85" />
+
+            {/* Platform Ground */}
+            <path d="M 10,84 L 90,84 L 78,98 L 22,98 Z" fill="url(#svg-platform-grad)" stroke="#451a03" strokeWidth="1" />
+
+            {/* Oval Paths on Platform */}
+            <ellipse cx="50" cy="91" rx="20" ry="4.5" fill="#fef9c3" opacity="0.85" />
+            <ellipse cx="22" cy="88" rx="10" ry="2.5" fill="#fef9c3" opacity="0.8" />
+            <ellipse cx="78" cy="88" rx="10" ry="2.5" fill="#fef9c3" opacity="0.8" />
           </svg>
         </div>
 
         {/* Premium Summit Sign Plate (Matches Castle sign in screenshot) */}
         <div className={cn(
-          "absolute bottom-4 left-1/2 -translate-x-1/2 w-60 border rounded-2xl px-4 py-2.5 text-center shadow-2xl z-30 select-none",
-          locked 
-            ? "bg-slate-800 border-slate-700 text-slate-205" 
+          "absolute bottom-4 left-1/2 -translate-x-1/2 w-60 h-[110px] border rounded-2xl px-4 py-2.5 text-center shadow-2xl z-30 select-none overflow-visible flex flex-col justify-center items-center",
+          locked
+            ? "bg-slate-800 border-slate-700 text-slate-205"
             : "bg-emerald-950/70 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/20"
         )}>
-          <h4 className="text-[11px] font-black uppercase tracking-wider font-heading text-white">
-            TOPIC COMPLETE
-          </h4>
-          <p className={cn(
-            "text-[9.5px] font-semibold leading-snug mt-1 font-sans",
-            locked ? "text-slate-400" : "text-emerald-100"
-          )}>
-            Congratulations!<br />
-            <br />
-            You have successfully completed the<br />
-            Advanced track for this topic.<br />
-            <br />
-            Ready for the next challenge.
-          </p>
+          {/* Top-Left Chain */}
+          <motion.div
+            className="absolute top-0 left-0 z-45 origin-top-left pointer-events-none"
+            initial={locked ? { x: 0, y: 0, rotate: 24.6, opacity: 1 } : { x: -100, y: -40, rotate: 10, opacity: 0 }}
+            animate={!locked ? { x: -100, y: -40, rotate: 10, opacity: 0 } : { x: 0, y: 0, rotate: 24.6, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <svg width="132" height="20" viewBox="0 0 132 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="chain-silver-grad" x1="0" y1="0" x2="132" y2="0">
+                  <stop offset="0%" stopColor="#475569" />
+                  <stop offset="25%" stopColor="#cbd5e1" />
+                  <stop offset="50%" stopColor="#f8fafc" />
+                  <stop offset="75%" stopColor="#cbd5e1" />
+                  <stop offset="100%" stopColor="#334155" />
+                </linearGradient>
+              </defs>
+              <rect x="2" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="16" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="22" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="36" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="42" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="56" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="62" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="76" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="82" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="96" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="102" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+            </svg>
+          </motion.div>
+
+          {/* Bottom-Left Chain */}
+          <motion.div
+            className="absolute bottom-0 left-0 z-45 origin-bottom-left pointer-events-none"
+            initial={locked ? { x: 0, y: 0, rotate: -24.6, opacity: 1 } : { x: -100, y: 40, rotate: -10, opacity: 0 }}
+            animate={!locked ? { x: -100, y: 40, rotate: -10, opacity: 0 } : { x: 0, y: 0, rotate: -24.6, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <svg width="132" height="20" viewBox="0 0 132 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="16" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="22" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="36" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="42" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="56" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="62" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="76" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="82" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="96" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="102" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+            </svg>
+          </motion.div>
+
+          {/* Top-Right Chain */}
+          <motion.div
+            className="absolute top-0 right-0 z-45 origin-top-right pointer-events-none"
+            initial={locked ? { x: 0, y: 0, rotate: -24.6, opacity: 1 } : { x: 100, y: -40, rotate: -10, opacity: 0 }}
+            animate={!locked ? { x: 100, y: -40, rotate: -10, opacity: 0 } : { x: 0, y: 0, rotate: -24.6, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <svg width="132" height="20" viewBox="0 0 132 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="16" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="22" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="36" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="42" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="56" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="62" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="76" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="82" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="96" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="102" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+            </svg>
+          </motion.div>
+
+          {/* Bottom-Right Chain */}
+          <motion.div
+            className="absolute bottom-0 right-0 z-45 origin-bottom-right pointer-events-none"
+            initial={locked ? { x: 0, y: 0, rotate: 24.6, opacity: 1 } : { x: 100, y: 40, rotate: 10, opacity: 0 }}
+            animate={!locked ? { x: 100, y: 40, rotate: 10, opacity: 0 } : { x: 0, y: 0, rotate: 24.6, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <svg width="132" height="20" viewBox="0 0 132 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="16" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="22" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="36" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="42" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="56" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="62" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="76" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="82" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+              <rect x="96" y="7" width="12" height="6" rx="3" fill="#334155" stroke="#1e293b" strokeWidth="0.8" />
+              <rect x="102" y="4" width="22" height="12" rx="6" stroke="url(#chain-silver-grad)" strokeWidth="2" fill="none" />
+            </svg>
+          </motion.div>
+
+
+
+
+
+
+
+         
+          {/* Center Padlock linking them */}
+          <motion.div
+            className="absolute left-1/2 top-[50%] -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            initial={locked ? { scale: 1, opacity: 1, y: 0 } : { y: 60, scale: 0.8, opacity: 0 }}
+            animate={!locked ? { y: 60, scale: 0.8, opacity: 0, rotate: -15 } : { y: 0, scale: 1, opacity: 1 }}
+            transition={{ duration: 0.7, ease: "easeIn" }}
+          >
+            <svg width="60" height="60" viewBox="0 0 60 60" className="drop-shadow-2xl">
+              <motion.path 
+                d="M 20,24 L 20,16 C 20,10 40,10 40,16 L 40,24" 
+                stroke="url(#chain-silver-grad)" 
+                strokeWidth="5" 
+                strokeLinecap="round" 
+                fill="none"
+                animate={!locked ? { y: -5, x: 3, rotate: 12 } : { y: 0, x: 0, rotate: 0 }}
+              />
+              <rect x="10" y="24" width="40" height="28" rx="5" fill="url(#chain-silver-grad)" stroke="#334155" strokeWidth="1.5" />
+              <circle cx="30" cy="36" r="3" fill="#1e293b" />
+              <path d="M 30,39 L 30,45" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </motion.div>
+
+          {/* Content: Showcase ONLY upon completing */}
+          {!locked && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="flex flex-col items-center justify-center w-full h-full text-center"
+            >
+              <h4 className="text-[11px] font-black uppercase tracking-wider font-heading text-white">
+                TOPIC COMPLETE
+              </h4>
+              <p className="text-[9.5px] font-semibold leading-snug mt-1 font-sans text-emerald-100">
+                Congratulations!<br />
+                You have successfully completed the<br />
+                Advanced track for this topic.<br />
+                Ready for the next challenge.
+              </p>
+            </motion.div>
+          )}
+
           {locked ? (
             <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-slate-400 p-1.5 rounded-full shadow-md">
               <Icons.Lock className="w-3.5 h-3.5" />

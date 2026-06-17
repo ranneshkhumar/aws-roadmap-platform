@@ -425,7 +425,7 @@ export default function ContentEditorPage() {
     <div className="space-y-6 flex flex-col h-full">
       
       {/* Top Navigation Row */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4 flex-shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4 flex-shrink-0 relative">
         <div className="flex items-center gap-3">
           <Link
             href={module?.topicId ? `/core/topics/${module.topicId}/roadmap?selected=${module.id}` : '/core/topics'}
@@ -449,7 +449,7 @@ export default function ContentEditorPage() {
         </div>
 
         {/* Editor tab navigation */}
-        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center bg-slate-100 rounded-xl p-1 gap-1">
           <Link
             href={`/core/module/${module.id}/content`}
             className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-white text-slate-900 shadow-sm"

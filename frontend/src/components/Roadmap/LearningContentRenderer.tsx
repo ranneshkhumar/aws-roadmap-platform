@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +69,8 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
   iconName,
   imageUrl
 }) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   const renderIllustration = () => {
     const name = iconName.toLowerCase();
     if (name.includes('shield') || name.includes('lock') || name.includes('key') || name.includes('iam')) {
@@ -86,7 +88,7 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
         <img
           src={imageUrl}
           alt={title}
-          className="w-full max-h-[180=px] object-contain rounded-lg drop-shadow-md"
+          className="w-full max-h-[480=px] object-contain rounded-lg drop-shadow-md"
         />
       );
     }
@@ -97,11 +99,51 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-black text-slate-950 tracking-tight">{title}</h3>
-        <div className="rounded-2xl overflow-hidden">
-          <div className="w-full">
+        <div className="w-full">
+          {/* Image with click to enlarge */}
+          <div
+            className="rounded-2xl overflow-hidden border border-slate-200 cursor-zoom-in group relative"
+            onClick={() => setLightboxOpen(true)}
+          >
             {renderVisual()}
+            {/* Hover hint */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                Click to expand
+              </span>
+            </div>
           </div>
+
+
         </div>
+
+        {/* Lightbox */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setLightboxOpen(false)}
+          >
+            {/* X button */}
+            <button
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <Icons.X className="w-5 h-5" />
+            </button>
+
+            {/* Enlarged image — stop propagation so clicking image doesn't close */}
+            <div
+              className="max-w-4xl w-full max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full h-auto object-contain max-h-[85vh]"
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -112,12 +154,21 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
         <h3 className="text-lg font-black text-slate-950 tracking-tight">{title}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-          {/* Image first on the left */}
-          <div className="rounded-2xl overflow-hidden border border-slate-200">
+          {/* Image with click to enlarge */}
+          <div
+            className="rounded-2xl overflow-hidden border border-slate-200 cursor-zoom-in group relative"
+            onClick={() => setLightboxOpen(true)}
+          >
             {renderVisual()}
+            {/* Hover hint */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                Click to expand
+              </span>
+            </div>
           </div>
 
-          {/* Bullets on the right */}
+          {/* Bullets */}
           <div className="space-y-3.5">
             {bullets.map((bullet, idx) => (
               <div key={idx} className="flex items-start gap-3">
@@ -130,6 +181,34 @@ export const LearningContentRenderer: React.FC<LearningContentRendererProps> = (
           </div>
 
         </div>
+
+        {/* Lightbox */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setLightboxOpen(false)}
+          >
+            {/* X button */}
+            <button
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <Icons.X className="w-5 h-5" />
+            </button>
+
+            {/* Enlarged image — stop propagation so clicking image doesn't close */}
+            <div
+              className="max-w-4xl w-full max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full h-auto object-contain max-h-[85vh]"
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -280,6 +280,11 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   // Scroll to active node or beginner on mount
   useEffect(() => {
     if (!mapContainerRef.current || modules.length === 0) return;
+
+    // Skip scroll to active node/beginner if topic is just completed
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get('justCompleted') === 'true') return;
+
     const activeNode = modules.find((m) => moduleStates[m.id] === 'current') || modules[0];
     const activeCoord = coordinates[activeNode.id];
     if (activeCoord && mapContainerRef.current) {
@@ -313,6 +318,56 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
   const isActiveBeginner = activeTab === 'beginner';
   const isActiveIntermediate = activeTab === 'intermediate';
   const isActiveAdvanced = activeTab === 'advanced';
+
+  // Unlocked states (colors gained)
+  const isBeginnerUnlocked = true;
+  const isIntermediateUnlocked = !isIntermediateLocked;
+  const isAdvancedUnlocked = !isAdvancedLocked;
+
+  // Current levels user is in (glowing shadow)
+  const isBeginnerCurrent = isIntermediateLocked;
+  const isIntermediateCurrent = !isIntermediateLocked && isAdvancedLocked;
+  const isAdvancedCurrent = !isAdvancedLocked;
+
+  const isAdvancedSummitActualLocked = totalCompleted < modules.length;
+  const [isAdvancedSummitLockedVisual, setIsAdvancedSummitLockedVisual] = useState(true);
+  const [animationTriggered, setAnimationTriggered] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const justCompleted = queryParams.get('justCompleted') === 'true';
+
+    if (justCompleted && !isAdvancedSummitActualLocked && !animationTriggered) {
+      setAnimationTriggered(true);
+      setIsAdvancedSummitLockedVisual(true);
+      setActiveTab('advanced');
+
+      // Scroll to the absolute bottom of the page immediately so they can watch the animation at the end!
+      if (mapContainerRef.current) {
+        const maxScroll = mapContainerRef.current.scrollHeight || (totalHeight + 300);
+        mapContainerRef.current.scrollTo({ top: maxScroll, behavior: 'smooth' });
+      }
+
+      // 1.2 seconds delay before breaking the lock
+      const unlockTimer = setTimeout(() => {
+        setIsAdvancedSummitLockedVisual(false);
+      }, 1200);
+
+      // 7.2 seconds delay (1.2s delay + 7s after animation) before redirecting to /learn
+      const redirectTimer = setTimeout(() => {
+        router.push('/learn');
+      }, 8200);
+
+      return () => {
+        clearTimeout(unlockTimer);
+        clearTimeout(redirectTimer);
+      };
+    } else if (!justCompleted || isAdvancedSummitActualLocked) {
+      setIsAdvancedSummitLockedVisual(isAdvancedSummitActualLocked);
+    }
+  }, [loading, isAdvancedSummitActualLocked, animationTriggered, totalHeight, router]);
 
   const scrollTarget = (topValue: number) => {
     if (mapContainerRef.current) {
@@ -397,7 +452,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
                 </span>
               </div>
               <div className="w-24 sm:w-40 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/30 relative shadow-inner">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
                   style={{ width: `${Math.round((totalCompleted / modules.length) * 100)}%` }}
                 />
@@ -420,10 +475,11 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
               setActiveTab('beginner');
             }}
             className={cn(
-              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveBeginner
-                ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105"
-                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border hover:scale-105 active:scale-95 text-slate-900",
+              isBeginnerCurrent
+                ? "shadow-[0_8px_25px_rgba(80,201,153,0.5),0_0_12px_rgba(80,201,153,0.25)] scale-105 border-white/60 ring-2 ring-emerald-400/30"
+                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] border-white/25 hover:border-white/50",
+              isActiveBeginner ? "border-white/80" : "border-white/30"
             )}
             style={{
               background: 'linear-gradient(90deg, #50C999 0%, #7EE8A8 100%)',
@@ -441,19 +497,31 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
               setActiveTab('intermediate');
             }}
             className={cn(
-              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveIntermediate
-                ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105"
-                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border hover:scale-105 active:scale-95",
+              isIntermediateUnlocked
+                ? "text-slate-900"
+                : "text-slate-400 bg-slate-900/30 border-slate-800/30 opacity-75 hover:opacity-90",
+              isIntermediateCurrent
+                ? "shadow-[0_8px_25px_rgba(78,168,255,0.5),0_0_12px_rgba(110,247,255,0.25)] scale-105 border-white/60 ring-2 ring-blue-400/30"
+                : isIntermediateUnlocked
+                  ? "shadow-[0_4px_12px_rgba(0,0,0,0.06)] border-white/25 hover:border-white/50"
+                  : "",
+              isActiveIntermediate && isIntermediateUnlocked
+                ? "border-white/80"
+                : isActiveIntermediate
+                  ? "border-slate-500/50"
+                  : isIntermediateUnlocked
+                    ? "border-white/30"
+                    : ""
             )}
             style={{
-              background: 'linear-gradient(90deg, #6EF7FF 0%, #4EA8FF 100%)',
+              background: isIntermediateUnlocked ? 'linear-gradient(90deg, #6EF7FF 0%, #4EA8FF 100%)' : undefined,
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
             }}
           >
             {isIntermediateLocked ? (
-              <Icons.Lock className="w-4 h-4 text-blue-900" />
+              <Icons.Lock className="w-4 h-4 text-slate-400" />
             ) : (
               <Icons.Zap className="w-4 h-4 fill-current text-blue-900" />
             )}
@@ -466,19 +534,31 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
               setActiveTab('advanced');
             }}
             className={cn(
-              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border border-white/40 hover:scale-105 active:scale-95 text-slate-900",
-              isActiveAdvanced
-                ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105"
-                : "shadow-[0_4px_12px_rgba(0,0,0,0.06)] opacity-90"
+              "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-[11px] font-black tracking-wider transition-all duration-300 font-heading border hover:scale-105 active:scale-95",
+              isAdvancedUnlocked
+                ? "text-slate-900"
+                : "text-slate-400 bg-slate-900/30 border-slate-800/30 opacity-75 hover:opacity-90",
+              isAdvancedCurrent
+                ? "shadow-[0_8px_25px_rgba(243,179,68,0.5),0_0_12px_rgba(255,221,148,0.25)] scale-105 border-white/60 ring-2 ring-amber-400/30"
+                : isAdvancedUnlocked
+                  ? "shadow-[0_4px_12px_rgba(0,0,0,0.06)] border-white/25 hover:border-white/50"
+                  : "",
+              isActiveAdvanced && isAdvancedUnlocked
+                ? "border-white/80"
+                : isActiveAdvanced
+                  ? "border-slate-500/50"
+                  : isAdvancedUnlocked
+                    ? "border-white/30"
+                    : ""
             )}
             style={{
-              background: 'linear-gradient(90deg, #FFDD94 0%, #F3B344 100%)',
+              background: isAdvancedUnlocked ? 'linear-gradient(90deg, #FFDD94 0%, #F3B344 100%)' : undefined,
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
             }}
           >
             {isAdvancedLocked ? (
-              <Icons.Lock className="w-4 h-4 text-amber-950" />
+              <Icons.Lock className="w-4 h-4 text-slate-400" />
             ) : (
               <Icons.Trophy className="w-4 h-4 fill-current text-amber-950" />
             )}
@@ -655,7 +735,7 @@ export const RoadmapScreen: React.FC<{ topicSlug: string }> = ({ topicSlug }) =>
             <CloudArchitectSummitLandmark
               x={coordinates['summit_advanced'].x}
               y={coordinates['summit_advanced'].y}
-              locked={totalCompleted < modules.length}
+              locked={isAdvancedSummitLockedVisual}
             />
           )}
 

@@ -26,6 +26,7 @@ import { SkyBackground } from '@/components/Roadmap/SkyBackground';
 import { TopicRailItem } from '@/components/Learn/TopicRailItem';
 import { LearningGuidePanel } from '@/components/Learn/LearningGuidePanel';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LearnPage() {
   const router = useRouter();
@@ -39,6 +40,14 @@ export default function LearnPage() {
   const [continueModule, setContinueModule] = useState<any | null>(null);
   const [userXP, setUserXP] = useState<number>(0);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Completion animation states
+  const [animatingTopicId, setAnimatingTopicId] = useState<string | null>(null);
+  const [nextAnimatingTopicId, setNextAnimatingTopicId] = useState<string | null>(null);
+  const [isCompletedVisual, setIsCompletedVisual] = useState(false);
+  const [isNextUnlockedVisual, setIsNextUnlockedVisual] = useState(false);
+  const [isArrowSuccessVisual, setIsArrowSuccessVisual] = useState(false);
+  const [visualPercent, setVisualPercent] = useState(0);
 
   // Exit handler
   const handleExit = () => {
@@ -79,6 +88,34 @@ export default function LearnPage() {
           progressService.getMyProgress(),
         ]);
         if (!active) return;
+
+        // Proactively detect completion animation on initial fetch to avoid first-render flash
+        const recentTopicId = sessionStorage.getItem("recentTopicCompletion");
+        if (recentTopicId) {
+          const completedTopicIndex = data.findIndex(t => t.id === recentTopicId);
+          if (completedTopicIndex !== -1) {
+            const completedTopic = data[completedTopicIndex];
+            if (completedTopic.completedModules === completedTopic.totalModules) {
+              const currentSig = `${completedTopic.id}-${completedTopic.totalModules}-${completedTopic.completedModules}`;
+              const lastSig = localStorage.getItem("lastAnimatedCompletionKey");
+              if (currentSig !== lastSig) {
+                setAnimatingTopicId(completedTopic.id);
+                setVisualPercent(0);
+                setIsArrowSuccessVisual(false);
+                setIsCompletedVisual(false);
+                setIsNextUnlockedVisual(false);
+
+                const nextTopic = data[completedTopicIndex + 1] || null;
+                if (nextTopic) {
+                  setNextAnimatingTopicId(nextTopic.id);
+                } else {
+                  setNextAnimatingTopicId(null);
+                }
+              }
+            }
+          }
+        }
+
         setTopics(data);
         setContinueModule(continueData.module);
         setUserXP(progressData.currentXP);
@@ -94,6 +131,89 @@ export default function LearnPage() {
     fetchTopics();
     return () => { active = false; };
   }, [router]);
+
+  // Topic completion animation trigger
+  useEffect(() => {
+    if (loading || topics.length === 0) return;
+
+    if (typeof window === 'undefined') return;
+
+    const recentTopicId = sessionStorage.getItem("recentTopicCompletion");
+    if (!recentTopicId) return;
+
+    const completedTopicIndex = topics.findIndex(t => t.id === recentTopicId);
+    if (completedTopicIndex === -1) return;
+
+    const completedTopic = topics[completedTopicIndex];
+    if (completedTopic.completedModules !== completedTopic.totalModules) return;
+
+    const currentSig = `${completedTopic.id}-${completedTopic.totalModules}-${completedTopic.completedModules}`;
+    const lastSig = localStorage.getItem("lastAnimatedCompletionKey");
+
+    if (currentSig === lastSig) {
+      sessionStorage.removeItem("recentTopicCompletion");
+      return;
+    }
+
+    // New completion found!
+    setAnimatingTopicId(completedTopic.id);
+    setIsCompletedVisual(false);
+    setIsNextUnlockedVisual(false);
+    setIsArrowSuccessVisual(false);
+
+    // Find the next topic in the array to unlock simultaneously
+    const nextTopic = topics[completedTopicIndex + 1] || null;
+    if (nextTopic) {
+      setNextAnimatingTopicId(nextTopic.id);
+    } else {
+      setNextAnimatingTopicId(null);
+    }
+
+    // Set starting percent to 0 for a visual completion charge (0% to 100%)
+    setVisualPercent(0);
+
+    // Phase 1: 300ms empty-state hold, then fill progress bar and AWS arrow to 100% over 2500ms
+    const fillTimer = setTimeout(() => {
+      setVisualPercent(100);
+    }, 300);
+
+    // Phase 2 (600ms): Once progress reaches 100% at 2800ms, transition color to Success Green
+    const colorTimer = setTimeout(() => {
+      setIsArrowSuccessVisual(true);
+    }, 2800); // 300ms hold + 2500ms fill
+
+    // Phase 3 & 4 (Simultaneous - 500ms crossfades) at 3400ms
+    const transitionTimer = setTimeout(() => {
+      setIsCompletedVisual(true);
+      setIsNextUnlockedVisual(true);
+    }, 3400); // 2800ms + 600ms color transition
+
+    // Clean up animation states after 3.9 seconds total
+    const cleanupTimer = setTimeout(() => {
+      localStorage.setItem("lastAnimatedCompletionKey", currentSig);
+      sessionStorage.removeItem("recentTopicCompletion");
+      sessionStorage.removeItem("recentTopicPrevPercent");
+      setAnimatingTopicId(null);
+      setNextAnimatingTopicId(null);
+      setIsCompletedVisual(false);
+      setIsNextUnlockedVisual(false);
+      setIsArrowSuccessVisual(false);
+    }, 3900);
+
+    return () => {
+      clearTimeout(fillTimer);
+      clearTimeout(colorTimer);
+      clearTimeout(transitionTimer);
+      clearTimeout(cleanupTimer);
+    };
+  }, [loading, topics]);
+
+  // Temporary logging to verify visualPercent transitions
+  useEffect(() => {
+    if (animatingTopicId) {
+      console.log("visualPercent updated:", visualPercent);
+    }
+  }, [visualPercent, animatingTopicId]);
 
   // Filter topics based on search query
   const filteredTopics = useMemo(() => {
@@ -147,6 +267,8 @@ export default function LearnPage() {
     const totalModules = topics.reduce((sum, t) => sum + (t.totalModules || 0), 0);
     return (totalModules > 0 && totalCompleted === totalModules) || !continueModule;
   }, [topics, continueModule]);
+
+  const isPlatformCompletedVisual = isPlatformCompleted && !animatingTopicId;
 
   // Check dial states
   const getDialStatus = (topic: TopicSummary) => {
@@ -213,93 +335,108 @@ export default function LearnPage() {
         {/* Cloud Background from Roadmaps */}
         <SkyBackground />
 
-        <div className="max-w-7xl mx-auto px-6 pt-8 flex flex-col gap-8 relative z-10">
+        <div className="max-w-full mx-auto px-6 xl:px-12 pt-8 flex flex-col gap-8 relative z-10">
 
           {/* ROADMAP PROGRESS HEADER PANEL */}
           <header className="flex flex-col md:flex-row items-center justify-between gap-4 w-full pointer-events-auto py-2">
             {/* Left Side: Current Mission Info */}
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              {isPlatformCompleted ? (
-                <div
-                  className="w-12 h-12 rounded-full bg-white/95 border border-slate-200/80 flex items-center justify-center shadow-lg flex-shrink-0 animate-bounce"
-                >
-                  <svg viewBox="0 0 304 182" className="w-8 h-auto" fill="none">
-                    <path
-                      fill="#252F3E"
-                      d="M86.4,66.4c0,3.7,0.4,6.7,1.1,8.9c0.8,2.2,1.8,4.6,3.2,7.2c0.5,0.8,0.7,1.6,0.7,2.3c0,1-0.6,2-1.9,3l-6.3,4.2c-0.9,0.6-1.8,0.9-2.6,0.9c-1,0-2-0.5-3-1.4C76.2,90,75,88.4,74,86.8c-1-1.7-2-3.6-3.1-5.9c-7.8,9.2-17.6,13.8-29.4,13.8c-8.4,0-15.1-2.4-20-7.2c-4.9-4.8-7.4-11.2-7.4-19.2c0-8.5,3-15.4,9.1-20.6c6.1-5.2,14.2-7.8,24.5-7.8c3.4,0,6.9,0.3,10.6,0.8c3.7,0.5,7.5,1.3,11.5,2.2v-7.3c0-7.6-1.6-12.9-4.7-16c-3.2-3.1-8.6-4.6-16.3-4.6c-3.5,0-7.1,0.4-10.8,1.3c-3.7,0.9-7.3,2-10.8,3.4c-1.6,0.7-2.8,1.1-3.5,1.3c-0.7,0.2-1.2,0.3-1.6,0.3c-1.4,0-2.1-1-2.1-3.1v-4.9c0-1.6,0.2-2.8,0.7-3.5c0.5-0.7,1.4-1.4,2.8-2.1c3.5-1.8,7.7-3.3,12.6-4.5c4.9-1.3,10.1-1.9,15.6-1.9c11.9,0,20.6,2.7,26.2,8.1c5.5,5.4,8.3,13.6,8.3,24.6V66.4z M45.8,81.6c3.3,0,6.7-0.6,10.3-1.8c3.6-1.2,6.8-3.4,9.5-6.4c1.6-1.9,2.8-4,3.4-6.4c0.6-2.4,1-5.3,1-8.7v-4.2c-2.9-0.7-6-1.3-9.2-1.7c-3.2-0.4-6.3-0.6-9.4-0.6c-6.7,0-11.6,1.3-14.9,4c-3.3,2.7-4.9,6.5-4.9,11.5c0,4.7,1.2,8.2,3.7,10.6C37.7,80.4,41.2,81.6,45.8,81.6z M126.1,92.4c-1.8,0-3-0.3-3.8-1c-0.8-0.6-1.5-2-2.1-3.9L96.7,10.2c-0.6-2-0.9-3.3-0.9-4c0-1.6,0.8-2.5,2.4-2.5h9.8c1.9,0,3.2,0.3,3.9,1c0.8,0.6,1.4,2,2,3.9l16.8,66.2l15.6-66.2c0.5-2,1.1-3.3,1.9-3.9c0.8-0.6,2.2-1,4-1h8c1.9,0,3.2,0.3,4,1c0.8,0.6,1.5,2,1.9,3.9l15.8,67l17.3-67c0.6-2,1.3-3.3,2-3.9c0.8-0.6,2.1-1,3.9-1h9.3c1.6,0,2.5,0.8,2.5,2.5c0,0.5-0.1,1-0.2,1.6c-0.1,0.6-0.3,1.4-0.7,2.5l-24.1,77.3c-0.6,2-1.3,3.3-2.1,3.9c-0.8,0.6-2.1,1-3.8,1h-8.6c-1.9,0-3.2-0.3-4-1c-0.8-0.7-1.5-2-1.9-4L156,23l-15.4,64.4c-0.5,2-1.1,3.3-1.9,4c-0.8,0.7-2.2,1-4,1H126.1z M254.6,95.1c-5.2,0-10.4-0.6-15.4-1.8c-5-1.2-8.9-2.5-11.5-4c-1.6-0.9-2.7-1.9-3.1-2.8c-0.4-0.9-0.6-1.9-0.6-2.8v-5.1c0-2.1,0.8-3.1,2.3-3.1c0.6,0,1.2,0.1,1.8,0.3c0.6,0.2,1.5,0.6,2.5,1c3.4,1.5,7.1,2.7,11,3.5c4,0.8,7.9,1.2,11.9,1.2c6.3,0,11.2-1.1,14.6-3.3c3.4-2.2,5.2-5.4,5.2-9.5c0-2.8-0.9-5.1-2.7-7c-1.8-1.9-5.2-3.6-10.1-5.2L246,52c-7.3-2.3-12.7-5.7-16-10.2c-3.3-4.4-5-9.3-5-14.5c0-4.2,0.9-7.9,2.7-11.1c1.8-3.2,4.2-6,7.2-8.2c3-2.3,6.4-4,10.4-5.2c4-1.2,8.2-1.7,12.6-1.7c2.2,0,4.5,0.1,6.7,0.4c2.3,0.3,4.4,0.7,6.5,1.1c2,0.5,3.9,1,5.7,1.6c1.8,0.6,3.2,1.2,4.2,1.8c1.4,0.8,2.4,1.6,3,2.5c0.6,0.8,0.9,1.9,0.9,3.3v4.7c0,2.1-0.8,3.2-2.3,3.2c-0.8,0-2.1-0.4-3.8-1.2c-5.7-2.6-12.1-3.9-19.2-3.9c-5.7,0-10.2,0.9-13.3,2.8c-3.1,1.9-4.7,4.8-4.7,8.9c0,2.8,1,5.2,3,7.1c2,1.9,5.7,3.8,11,5.5l14.2,4.5c7.2,2.3,12.4,5.5,15.5,9.6c3.1,4.1,4.6,8.8,4.6,14c0,4.3-0.9,8.2-2.6,11.6c-1.8,3.4-4.2,6.4-7.3,8.8c-3.1,2.5-6.8,4.3-11.1,5.6C264.4,94.4,259.7,95.1,254.6,95.1z"
-                    />
-                    <path
-                      fill="#FF9900"
-                      d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z"
-                    />
-                    <path
-                      fill="#FF9900"
-                      d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z"
-                    />
-                  </svg>
-                </div>
-              ) : (
-                <button
-                  onClick={handleResume}
-                  disabled={!continueModule}
-                  aria-label="Resume learning"
-                  className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-300 flex-shrink-0",
-                    continueModule
-                      ? "bg-emerald-500 shadow-emerald-500/20 cursor-pointer hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105 active:scale-95"
-                      : "bg-slate-300 cursor-not-allowed"
-                  )}
-                >
-                  <ChevronRight className="w-6 h-6 stroke-[3]" />
-                </button>
-              )}
-              <div className="flex flex-col text-slate-800">
-                {isPlatformCompleted ? (
-                  <>
-                    <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5">
-                      🎉 AWS Journey Complete
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500 mt-1 block">
-                      Congratulations! You've completed every available topic.
-                    </span>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] font-extrabold">
-                      <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50/80 border border-emerald-100/30 px-2.5 py-0.5 rounded-md">
-                        {topicsCompletedCount} {topicsCompletedCount === 1 ? 'Topic' : 'Topics'} Completed
-                      </span>
-                      <span className="text-slate-300">|</span>
-                      <span className="flex items-center gap-1 text-cyan-600 bg-cyan-50/80 border border-cyan-100/30 px-2.5 py-0.5 rounded-md">
-                        {modulesCompletedCount} {modulesCompletedCount === 1 ? 'Module' : 'Modules'} Completed
-                      </span>
+            <div className="flex items-center gap-4 w-full md:w-auto min-h-[72px]">
+              <AnimatePresence mode="wait">
+                {isPlatformCompletedVisual ? (
+                  <motion.div
+                    key="completed-header"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-4 w-full md:w-auto"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full bg-white/95 border border-slate-200/80 flex items-center justify-center shadow-lg flex-shrink-0 animate-bounce"
+                    >
+                      <svg viewBox="0 0 304 182" className="w-8 h-auto" fill="none">
+                        <path
+                          fill="#252F3E"
+                          d="M86.4,66.4c0,3.7,0.4,6.7,1.1,8.9c0.8,2.2,1.8,4.6,3.2,7.2c0.5,0.8,0.7,1.6,0.7,2.3c0,1-0.6,2-1.9,3l-6.3,4.2c-0.9,0.6-1.8,0.9-2.6,0.9c-1,0-2-0.5-3-1.4C76.2,90,75,88.4,74,86.8c-1-1.7-2-3.6-3.1-5.9c-7.8,9.2-17.6,13.8-29.4,13.8c-8.4,0-15.1-2.4-20-7.2c-4.9-4.8-7.4-11.2-7.4-19.2c0-8.5,3-15.4,9.1-20.6c6.1-5.2,14.2-7.8,24.5-7.8c3.4,0,6.9,0.3,10.6,0.8c3.7,0.5,7.5,1.3,11.5,2.2v-7.3c0-7.6-1.6-12.9-4.7-16c-3.2-3.1-8.6-4.6-16.3-4.6c-3.5,0-7.1,0.4-10.8,1.3c-3.7,0.9-7.3,2-10.8,3.4c-1.6,0.7-2.8,1.1-3.5,1.3c-0.7,0.2-1.2,0.3-1.6,0.3c-1.4,0-2.1-1-2.1-3.1v-4.9c0-1.6,0.2-2.8,0.7-3.5c0.5-0.7,1.4-1.4,2.8-2.1c3.5-1.8,7.7-3.3,12.6-4.5c4.9-1.3,10.1-1.9,15.6-1.9c11.9,0,20.6,2.7,26.2,8.1c5.5,5.4,8.3,13.6,8.3,24.6V66.4z M45.8,81.6c3.3,0,6.7-0.6,10.3-1.8c3.6-1.2,6.8-3.4,9.5-6.4c1.6-1.9,2.8-4,3.4-6.4c0.6-2.4,1-5.3,1-8.7v-4.2c-2.9-0.7-6-1.3-9.2-1.7c-3.2-0.4-6.3-0.6-9.4-0.6c-6.7,0-11.6,1.3-14.9,4c-3.3,2.7-4.9,6.5-4.9,11.5c0,4.7,1.2,8.2,3.7,10.6C37.7,80.4,41.2,81.6,45.8,81.6z M126.1,92.4c-1.8,0-3-0.3-3.8-1c-0.8-0.6-1.5-2-2.1-3.9L96.7,10.2c-0.6-2-0.9-3.3-0.9-4c0-1.6,0.8-2.5,2.4-2.5h9.8c1.9,0,3.2,0.3,3.9,1c0.8,0.6,1.4,2,2,3.9l16.8,66.2l15.6-66.2c0.5-2,1.1-3.3,1.9-3.9c0.8-0.6,2.2-1,4-1h8c1.9,0,3.2,0.3,4,1c0.8,0.6,1.5,2,1.9,3.9l15.8,67l17.3-67c0.6-2,1.3-3.3,2-3.9c0.8-0.6,2.1-1,3.9-1h9.3c1.6,0,2.5,0.8,2.5,2.5c0,0.5-0.1,1-0.2,1.6c-0.1,0.6-0.3,1.4-0.7,2.5l-24.1,77.3c-0.6,2-1.3,3.3-2.1,3.9c-0.8,0.6-2.1,1-3.8,1h-8.6c-1.9,0-3.2-0.3-4-1c-0.8-0.7-1.5-2-1.9-4L156,23l-15.4,64.4c-0.5,2-1.1,3.3-1.9,4c-0.8,0.7-2.2,1-4,1H126.1z M254.6,95.1c-5.2,0-10.4-0.6-15.4-1.8c-5-1.2-8.9-2.5-11.5-4c-1.6-0.9-2.7-1.9-3.1-2.8c-0.4-0.9-0.6-1.9-0.6-2.8v-5.1c0-2.1,0.8-3.1,2.3-3.1c0.6,0,1.2,0.1,1.8,0.3c0.6,0.2,1.5,0.6,2.5,1c3.4,1.5,7.1,2.7,11,3.5c4,0.8,7.9,1.2,11.9,1.2c6.3,0,11.2-1.1,14.6-3.3c3.4-2.2,5.2-5.4,5.2-9.5c0-2.8-0.9-5.1-2.7-7c-1.8-1.9-5.2-3.6-10.1-5.2L246,52c-7.3-2.3-12.7-5.7-16-10.2c-3.3-4.4-5-9.3-5-14.5c0-4.2,0.9-7.9,2.7-11.1c1.8-3.2,4.2-6,7.2-8.2c3-2.3,6.4-4,10.4-5.2c4-1.2,8.2-1.7,12.6-1.7c2.2,0,4.5,0.1,6.7,0.4c2.3,0.3,4.4,0.7,6.5,1.1c2,0.5,3.9,1,5.7,1.6c1.8,0.6,3.2,1.2,4.2,1.8c1.4,0.8,2.4,1.6,3,2.5c0.6,0.8,0.9,1.9,0.9,3.3v4.7c0,2.1-0.8,3.2-2.3,3.2c-0.8,0-2.1-0.4-3.8-1.2c-5.7-2.6-12.1-3.9-19.2-3.9c-5.7,0-10.2,0.9-13.3,2.8c-3.1,1.9-4.7,4.8-4.7,8.9c0,2.8,1,5.2,3,7.1c2,1.9,5.7,3.8,11,5.5l14.2,4.5c7.2,2.3,12.4,5.5,15.5,9.6c3.1,4.1,4.6,8.8,4.6,14c0,4.3-0.9,8.2-2.6,11.6c-1.8,3.4-4.2,6.4-7.3,8.8c-3.1,2.5-6.8,4.3-11.1,5.6C264.4,94.4,259.7,95.1,254.6,95.1z"
+                        />
+                        <path
+                          fill="#FF9900"
+                          d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z"
+                        />
+                        <path
+                          fill="#FF9900"
+                          d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z"
+                        />
+                      </svg>
                     </div>
-                  </>
+                    <div className="flex flex-col text-slate-800">
+                      <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5">
+                        🎉 AWS Journey Complete
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500 mt-1 block">
+                        Congratulations! You've completed every available topic.
+                      </span>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] font-extrabold">
+                        <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50/80 border border-emerald-100/30 px-2.5 py-0.5 rounded-md">
+                          {topicsCompletedCount} {topicsCompletedCount === 1 ? 'Topic' : 'Topics'} Completed
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        <span className="flex items-center gap-1 text-cyan-600 bg-cyan-50/80 border border-cyan-100/30 px-2.5 py-0.5 rounded-md">
+                          {modulesCompletedCount} {modulesCompletedCount === 1 ? 'Module' : 'Modules'} Completed
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
                 ) : (
-                  <>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
-                      CONTINUE YOUR JOURNEY
-                    </span>
-                    <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5 animate-pulse">
-                      {continueModule ? `Current Mission: ${continueModule.name}` : 'Ready to start your AWS journey'}
-                    </span>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
-                      <span className="flex items-center gap-1 text-cyan-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> {continueModule ? continueTopicProgress : 'Select a topic to start'}
-                      </span>
-                      {continueModule?.topicName && (
-                        <>
-                          <span className="text-slate-300">|</span>
-                          <Link
-                            href={`/learn/${continueModule.topicSlug}`}
-                            className="text-indigo-650 font-bold bg-indigo-50/80 hover:bg-indigo-100/80 px-2.5 py-0.5 rounded-md text-[10px] tracking-tight cursor-pointer transition-all hover:scale-105 inline-flex items-center gap-1"
-                            title="Go to topic roadmap"
-                          >
-                            Topic: {continueModule.topicName}
-                          </Link>
-                        </>
+                  <motion.div
+                    key="current-header"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-4 w-full md:w-auto"
+                  >
+                    <button
+                      onClick={handleResume}
+                      disabled={!continueModule}
+                      aria-label="Resume learning"
+                      className={cn(
+                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-300 flex-shrink-0",
+                        continueModule
+                          ? "bg-emerald-500 shadow-emerald-500/20 cursor-pointer hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105 active:scale-95"
+                          : "bg-slate-300 cursor-not-allowed"
                       )}
+                    >
+                      <ChevronRight className="w-6 h-6 stroke-[3]" />
+                    </button>
+                    <div className="flex flex-col text-slate-800">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-heading">
+                        CONTINUE YOUR JOURNEY
+                      </span>
+                      <span className="text-base font-black text-slate-900 block leading-tight font-heading mt-0.5 animate-pulse">
+                        {continueModule ? `Current Mission: ${continueModule.name}` : 'Ready to start your AWS journey'}
+                      </span>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] font-extrabold text-slate-500">
+                        <span className="flex items-center gap-1 text-cyan-600">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {continueModule ? continueTopicProgress : 'Select a topic to start'}
+                        </span>
+                        {continueModule?.topicName && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <Link
+                              href={`/learn/${continueModule.topicSlug}`}
+                              className="text-indigo-650 font-bold bg-indigo-50/80 hover:bg-indigo-100/80 px-2.5 py-0.5 rounded-md text-[10px] tracking-tight cursor-pointer transition-all hover:scale-105 inline-flex items-center gap-1"
+                              title="Go to topic roadmap"
+                            >
+                              Topic: {continueModule.topicName}
+                            </Link>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
 
             {/* Right Side: Reward & Resume */}
@@ -360,27 +497,34 @@ export default function LearnPage() {
                 <LogOut className="w-4 h-4" />
               </button>
 
-              {isPlatformCompleted ? null : (
-                <button
-                  disabled={!continueModule}
-                  onClick={handleResume}
-                  className={cn(
-                    "font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading cursor-pointer text-white",
-                    continueModule
-                      ? "bg-[#00cba9] hover:bg-[#00bda0]"
-                      : "bg-slate-300 shadow-none cursor-not-allowed"
-                  )}
-                >
-                  Resume Learning
-                </button>
-              )}
+              <AnimatePresence>
+                {!isPlatformCompletedVisual && (
+                  <motion.button
+                    key="resume-learning-btn"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    disabled={!continueModule}
+                    onClick={handleResume}
+                    className={cn(
+                      "font-black text-xs px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 tracking-wider font-heading cursor-pointer text-white",
+                      continueModule
+                        ? "bg-[#00cba9] hover:bg-[#00bda0]"
+                        : "bg-slate-300 shadow-none cursor-not-allowed"
+                    )}
+                  >
+                    Resume Learning
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </header>
 
           {/* TWO-COLUMN LAYOUT: Topic rail + Learning Guide */}
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-8 lg:items-stretch">
             {/* Left Column: Search + Topic Rail */}
-            <div className="flex-[2] min-w-0" id="topic-rail-section">
+            <div className="flex-[1.5] min-w-0" id="topic-rail-section">
               <div className="flex items-center pointer-events-auto">
                 <div className="relative min-w-[240px] w-full">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -417,155 +561,248 @@ export default function LearnPage() {
                       const isCurrent = status === 'CURRENT' || status === 'AVAILABLE';
                       const isLocked = status === 'LOCKED';
 
-                      // Determine if this is the first locked topic in the filtered list
+                      // Determine if this is the first locked topic in the filtered list (based on original status)
                       const isFirstLocked = isLocked && (index === 0 || getDialStatus(filteredTopics[index - 1]) !== 'LOCKED');
 
-                      const progressPercent = topic.totalModules > 0
+                      // Visual states for overrides during completion animation
+                      let statusToRender = status;
+                      let progressPercentToRender = topic.totalModules > 0
                         ? Math.round((topic.completedModules / topic.totalModules) * 100)
                         : 0;
+                      let completedModulesToRender = topic.completedModules;
+
+                      if (topic.id === animatingTopicId) {
+                        if (!isCompletedVisual) {
+                          statusToRender = 'CURRENT';
+                          progressPercentToRender = visualPercent;
+                          const sessionStoragePrevPercent = sessionStorage.getItem("recentTopicPrevPercent");
+                          const prevPercent = sessionStoragePrevPercent !== null
+                            ? Number(sessionStoragePrevPercent)
+                            : (topic.totalModules > 1 ? Math.round(((topic.totalModules - 1) / topic.totalModules) * 100) : 0);
+                          completedModulesToRender = Math.round((prevPercent / 100) * topic.totalModules);
+                        } else {
+                          statusToRender = 'COMPLETED';
+                          progressPercentToRender = 100;
+                          completedModulesToRender = topic.totalModules;
+                        }
+                      } else if (topic.id === nextAnimatingTopicId) {
+                        if (!isNextUnlockedVisual) {
+                          statusToRender = 'LOCKED';
+                        } else {
+                          statusToRender = 'CURRENT';
+                          progressPercentToRender = 0;
+                          completedModulesToRender = 0;
+                        }
+                      }
+
+                      const renderCurrent = statusToRender === 'CURRENT';
+                      const renderCompleted = statusToRender === 'COMPLETED';
+                      const renderLocked = statusToRender === 'LOCKED';
 
                       // Dynamic current module label (e.g. MOD 3)
-                      const currentModuleLabel = `MOD ${Math.min(topic.completedModules + 1, topic.totalModules)}`;
+                      const currentModuleLabel = `MOD ${Math.min(completedModulesToRender + 1, topic.totalModules)}`;
 
-                      if (isCurrent) {
-                        return (
-                          <div
-                            key={topic.id}
-                            className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-xl p-5 md:p-6 flex flex-col gap-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-[#FF9900] text-left"
-                          >
-                            {/* Two-column layout: details + AWS Swoosh Progress Illustration */}
-                            <div className="flex items-center justify-between gap-6">
-                              {/* Left Details */}
-                              <div className="flex-1 min-w-0">
-                                <span className="inline-block bg-[#FF9900]/10 text-[#FF9900] border border-[#FF9900]/20 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-3">
-                                  Current
-                                </span>
-
-                                <h2 className="text-xl font-semibold text-slate-900 tracking-tight leading-tight">
-                                  {topic.name}
-                                </h2>
-
-                                {/* Details Row: No time estimate */}
-                                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500 font-normal">
-                                  <span>{topic.completedModules} / {topic.totalModules} Modules</span>
-                                  <span className="text-slate-350 font-semibold">•</span>
-                                  <span className="text-[#FF9900] font-semibold">
-                                    {currentModuleLabel}
-                                  </span>
-                                </div>
-
-                                {/* Progress bar and numeric percentage */}
-                                <div className="flex items-center gap-3 mt-4">
-                                  <div className="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full transition-all duration-700 ease-out bg-[#FF9900]"
-                                      style={{ width: `${progressPercent}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-semibold text-slate-500 leading-none">
-                                    {progressPercent}%
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Right Side: AWS Swoosh Progress Illustration */}
-                              <div className="w-32 h-16 md:w-36 md:h-16 flex-shrink-0 flex items-center justify-center bg-white/10 border border-amber-500/20 rounded-xl p-2.5 relative overflow-hidden backdrop-blur-sm shadow-[0_0_12px_rgba(255,153,0,0.08)]">
-                                <svg viewBox="0 100 310 90" className="w-full h-auto text-slate-200/50 select-none">
-                                  <defs>
-                                    <clipPath id={`aws-swoosh-clip-${topic.id}`}>
-                                      <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
-                                      <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
-                                    </clipPath>
-                                  </defs>
-
-                                  {/* Unfilled background swoosh outline */}
-                                  <g fill="rgba(226, 232, 240, 0.25)" stroke="rgba(255, 159, 0, 1)" strokeWidth="3">
-                                    <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
-                                    <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
-                                  </g>
-
-                                  {/* Filled swoosh left-to-right using clipPath */}
-                                  <g clipPath={`url(#aws-swoosh-clip-${topic.id})`}>
-                                    <rect
-                                      x="0"
-                                      y="100"
-                                      width={`${(300 * progressPercent) / 100}`}
-                                      height="90"
-                                      fill="#FF9900"
-                                      className="transition-all duration-700 ease-out"
-                                    />
-                                  </g>
-                                </svg>
-                              </div>
-                            </div>
-
-                            {/* Bottom Row: Action */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
-                              <Link
-                                href={`/learn/${topic.slug}`}
-                                className="border border-[#FF9900] text-[#FF9900] hover:bg-[#FF9900]/5 px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
-                              >
-                                <span>Continue</span>
-                                <span className="text-sm">→</span>
-                              </Link>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (isCompleted) {
-                        return (
-                          <div
-                            key={topic.id}
-                            className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-emerald-500 text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                              </div>
-                              <span className="font-semibold text-slate-800 text-sm md:text-base leading-none">
-                                {topic.name}
-                              </span>
-                              <span className="text-[10px] font-extrabold text-slate-600 bg-white/10 border border-white/20 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
-                                {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
-                              </span>
-                            </div>
-
-                            <Link
-                              href={`/learn/${topic.slug}`}
-                              className="border border-emerald-500/40 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/15 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all active:scale-[0.98] cursor-pointer"
-                            >
-                              <span>Review</span>
-                              <span className="text-sm">→</span>
-                            </Link>
-                          </div>
-                        );
-                      }
-
-                      // Locked topic
                       return (
-                        <React.Fragment key={topic.id}>
+                        <div key={topic.id} className="w-full">
                           {isFirstLocked && (
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-heading mt-6 mb-3 self-start pl-2">
                               UPCOMING TOPICS
                             </span>
                           )}
-                          <div
-                            className="w-full bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_24px_rgba(0,0,0,0.05)] select-none opacity-80 text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 flex-shrink-0">
-                                <Lock className="w-4 h-4" />
-                              </div>
-                              <span className="font-semibold text-slate-700 text-sm md:text-base leading-none">
-                                {topic.name}
-                              </span>
-                              <span className="text-[10px] font-extrabold text-slate-500 bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
-                                {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
-                              </span>
-                            </div>
-                          </div>
-                        </React.Fragment>
+                          <AnimatePresence mode="wait">
+                            {renderCurrent && (
+                              <motion.div
+                                key={`${topic.id}-current`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.45 }}
+                                className={cn(
+                                  "w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-xl p-5 md:p-6 flex flex-col gap-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 text-left transition-[border-color]",
+                                  topic.id === animatingTopicId
+                                    ? (isArrowSuccessVisual ? "border-l-emerald-500 duration-600 ease-in-out" : "border-l-[#FF9900]")
+                                    : "border-l-[#FF9900]"
+                                )}
+                              >
+                                {/* Two-column layout: details + AWS Swoosh Progress Illustration */}
+                                <div className="flex items-center justify-between gap-6">
+                                  {/* Left Details */}
+                                  <div className="flex-1 min-w-0">
+                                    <span className={cn(
+                                      "inline-block text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-3 transition-colors duration-600",
+                                      topic.id === animatingTopicId && isArrowSuccessVisual
+                                        ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                        : "bg-[#FF9900]/10 text-[#FF9900] border border-[#FF9900]/20"
+                                    )}>
+                                      Current
+                                    </span>
+
+                                    <h2 className="text-xl font-semibold text-slate-900 tracking-tight leading-tight">
+                                      {topic.name}
+                                    </h2>
+
+                                    {/* Details Row: No time estimate */}
+                                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500 font-normal">
+                                      <span>{completedModulesToRender} / {topic.totalModules} Modules</span>
+                                      <span className="text-slate-350 font-semibold">•</span>
+                                      <span className={cn(
+                                        "font-semibold transition-colors duration-600",
+                                        topic.id === animatingTopicId && isArrowSuccessVisual ? "text-emerald-600" : "text-[#FF9900]"
+                                      )}>
+                                        {currentModuleLabel}
+                                      </span>
+                                    </div>
+
+                                    {/* Progress bar and numeric percentage */}
+                                    <div className="flex items-center gap-3 mt-4">
+                                      <div className="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
+                                        <div
+                                          className={cn(
+                                            "h-full rounded-full",
+                                            topic.id === animatingTopicId
+                                              ? (isArrowSuccessVisual ? "bg-emerald-500" : "bg-[#FF9900]")
+                                              : "bg-[#FF9900]"
+                                          )}
+                                          style={{
+                                            width: `${progressPercentToRender}%`,
+                                            transition: topic.id === animatingTopicId
+                                              ? 'width 2500ms ease-out, background-color 600ms ease-in-out'
+                                              : 'width 700ms ease-out, background-color 700ms ease-out'
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="text-xs font-semibold text-slate-500 leading-none">
+                                        {progressPercentToRender}%
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Right Side: AWS Swoosh Progress Illustration */}
+                                  <div className="w-32 h-16 md:w-36 md:h-16 flex-shrink-0 flex items-center justify-center bg-white/10 border border-amber-500/20 rounded-xl p-2.5 relative overflow-hidden backdrop-blur-sm shadow-[0_0_12px_rgba(255,153,0,0.08)]">
+                                    <svg viewBox="0 100 310 90" className="w-full h-auto text-slate-200/50 select-none">
+                                      <defs>
+                                        <clipPath id={`aws-swoosh-clip-${topic.id}`}>
+                                          <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
+                                          <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
+                                        </clipPath>
+                                      </defs>
+
+                                      {/* Unfilled background swoosh outline */}
+                                      <g
+                                        fill="rgba(226, 232, 240, 0.25)"
+                                        stroke={
+                                          topic.id === animatingTopicId
+                                            ? (isArrowSuccessVisual ? "#10B981" : "rgba(255, 159, 0, 1)")
+                                            : "rgba(255, 159, 0, 1)"
+                                        }
+                                        strokeWidth="3"
+                                        style={{
+                                          transition: topic.id === animatingTopicId
+                                            ? 'stroke 600ms ease-in-out'
+                                            : 'stroke 700ms ease-out'
+                                        }}
+                                      >
+                                        <path d="M273.5,143.7c-32.9,24.3-80.7,37.2-121.8,37.2c-57.6,0-109.5-21.3-148.7-56.7c-3.1-2.8-0.3-6.6,3.4-4.4c42.4,24.6,94.7,39.5,148.8,39.5c36.5,0,76.6-7.6,113.5-23.2C274.2,133.6,278.9,139.7,273.5,143.7z" />
+                                        <path d="M287.2,128.1c-4.2-5.4-27.8-2.6-38.5-1.3c-3.2,0.4-3.7-2.4-0.8-4.5c18.8-13.2,49.7-9.4,53.3-5c3.6,4.5-1,35.4-18.6,50.2c-2.7,2.3-5.3,1.1-4.1-1.9C282.5,155.7,291.4,133.4,287.2,128.1z" />
+                                      </g>
+
+                                      {/* Filled swoosh left-to-right using clipPath */}
+                                      <g clipPath={`url(#aws-swoosh-clip-${topic.id})`}>
+                                        <rect
+                                          x="0"
+                                          y="100"
+                                          width={`${(300 * progressPercentToRender) / 100}`}
+                                          height="90"
+                                          fill={
+                                            topic.id === animatingTopicId
+                                              ? (isArrowSuccessVisual ? "#10B981" : "#FF9900")
+                                              : "#FF9900"
+                                          }
+                                          style={{
+                                            width: `${(300 * progressPercentToRender) / 100}px`,
+                                            transition: topic.id === animatingTopicId
+                                              ? 'width 2500ms ease-out, fill 600ms ease-in-out'
+                                              : 'width 700ms ease-out, fill 700ms ease-out'
+                                          }}
+                                        />
+                                      </g>
+                                    </svg>
+                                  </div>
+                                </div>
+
+                                {/* Bottom Row: Action */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
+                                  <Link
+                                    href={`/learn/${topic.slug}`}
+                                    className={cn(
+                                      "px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all duration-600 active:scale-[0.98] cursor-pointer",
+                                      topic.id === animatingTopicId && isArrowSuccessVisual
+                                        ? "border-emerald-500 text-emerald-600 hover:bg-emerald-500/5"
+                                        : "border-[#FF9900] text-[#FF9900] hover:bg-[#FF9900]/5"
+                                    )}
+                                  >
+                                    <span>Continue</span>
+                                    <span className="text-sm">→</span>
+                                  </Link>
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {renderCompleted && (
+                              <motion.div
+                                key={`${topic.id}-completed`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.45 }}
+                                className="w-full bg-white/[0.15] backdrop-blur-[20px] border border-white/25 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.08)] select-none border-l-4 border-l-emerald-500 text-left"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                                  </div>
+                                  <span className="font-semibold text-slate-800 text-sm md:text-base leading-none">
+                                    {topic.name}
+                                  </span>
+                                  <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
+                                    {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
+                                  </span>
+                                </div>
+
+                                <Link
+                                  href={`/learn/${topic.slug}`}
+                                  className="border border-emerald-500/40 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/15 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all active:scale-[0.98] cursor-pointer"
+                                >
+                                  <span>Review</span>
+                                  <span className="text-sm">→</span>
+                                </Link>
+                              </motion.div>
+                            )}
+
+                            {renderLocked && (
+                              <motion.div
+                                key={`${topic.id}-locked`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.45 }}
+                                className="w-full bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[20px] py-3.5 px-6 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_24px_rgba(0,0,0,0.05)] select-none opacity-80 text-left"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    <Lock className="w-4 h-4" />
+                                  </div>
+                                  <span className="font-semibold text-slate-700 text-sm md:text-base leading-none">
+                                    {topic.name}
+                                  </span>
+                                  <span className="text-[10px] font-extrabold text-slate-500 bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 ml-2 uppercase tracking-wide">
+                                    {topic.totalModules} {topic.totalModules === 1 ? 'Module' : 'Modules'}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       );
                     })}
                   </div>
@@ -574,10 +811,8 @@ export default function LearnPage() {
             </div>
 
             {/* Right Column: Learning Guide Panel */}
-            <div className="w-full lg:w-[360px] flex-shrink-0">
-              <div className="lg:sticky lg:top-8">
-                <LearningGuidePanel />
-              </div>
+            <div className="w-full lg:flex-1 flex-shrink-0">
+              <LearningGuidePanel />
             </div>
           </div>
 
